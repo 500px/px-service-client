@@ -35,7 +35,7 @@ This gem includes several common features used in 500px service client libraries
 
 The features are:
 
-h3. Service::Client::Caching
+#### Service::Client::Caching
 
 ```ruby
 include Service::Client::Caching
@@ -54,7 +54,7 @@ to be refreshed probabilistically (rather than on every request).
 *first-resort* means that the cached value is always used, if present.  Requests to the service are only made
 when the cached value is close to expiry.
 
-h3. Service::Client::CircuitBreaker
+#### Service::Client::CircuitBreaker
 
 ```ruby
 def call_remote_service() ...
@@ -84,7 +84,7 @@ using its `instance` class method (calls to `new` will fail).
 
 This module is based on (and uses) the [Circuit Breaker](https://github.com/wsargent/circuit_breaker) gem by Will Sargent.
 
-h3. Service::Client::ListResponse
+#### Service::Client::ListResponse
 
 ```ruby
   def get_something(page, page_size)
