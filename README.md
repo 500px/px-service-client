@@ -44,8 +44,7 @@ self.cache_client =  Dalli::Client.new(...)
 self.cache_logger = Logger.new(STDOUT) # or Rails.logger, for example
 ```
 
-Provides client-side response caching.  Responses are cached in memcached (using the provided cache client)
-in either a *last-resort* or *first-resort* manner.
+Provides client-side response caching of service requests.  Responses are cached in memcached (using the provided cache client) in either a *last-resort* or *first-resort* manner.
 
 *last-resort* means that the cached value is only used when the service client request fails (with a
 `ServiceError`).  When using last-resort caching, a `refresh_probability` can be provided that causes the cached value
