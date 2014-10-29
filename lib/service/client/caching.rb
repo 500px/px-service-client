@@ -17,7 +17,7 @@ module Service::Client
     ]
 
     included do
-      cattr_accessor :cache_client, :logger
+      cattr_accessor :cache_client, :cache_logger
     end
 
     def cache_request(url, strategy: :last_resort, expires_in: 30.seconds, **options, &block)
@@ -51,7 +51,7 @@ module Service::Client
 
         response
       rescue Service::ServiceError => ex
-        logger.error "Service responded with exception: #{ex.class.name}: #{ex.message}\n#{ex.backtrace.join('\n')}" if logger
+        cache_logger.error "Service responded with exception: #{ex.class.name}: #{ex.message}\n#{ex.backtrace.join('\n')}" if cache_logger
 
         entry = CacheEntry.fetch(cache_client, url, policy_group)
         if entry.nil?
@@ -91,7 +91,7 @@ module Service::Client
         entry.store(expires_in)
         response
       rescue Service::ServiceError => ex
-        logger.error "Service responded with exception: #{ex.class.name}: #{ex.message}\n#{ex.backtrace.join('\n')}" if logger
+        cache_logger.error "Service responded with exception: #{ex.class.name}: #{ex.message}\n#{ex.backtrace.join('\n')}" if cache_logger
 
         if entry.nil?
           # Re-raise the error, no cached response
