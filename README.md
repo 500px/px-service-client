@@ -35,14 +35,13 @@ This gem includes several common features used in 500px service client libraries
 
 The features are:
 
-**Service::Client::Caching**
+h3. Service::Client::Caching
 
 ```ruby
 include Service::Client::Caching
 
 self.cache_client =  Dalli::Client.new(...)
 self.cache_logger = Logger.new(STDOUT) # or Rails.logger, for example
-
 ```
 
 Provides client-side response caching.  Responses are cached in memcached (using the provided cache client)
@@ -55,17 +54,64 @@ to be refreshed probabilistically (rather than on every request).
 *first-resort* means that the cached value is always used, if present.  Requests to the service are only made
 when the cached value is close to expiry.
 
-**Service::Client::CircuitBreaker**
+h3. Service::Client::CircuitBreaker
 
-Provides client-side response caching.  Responses are cached in memcached (using the provided cache client)
-in either a *last-resort* or *first-resort* manner.
+```ruby
+def call_remote_service() ...
 
-*last-resort* means that the cached value is only used when the service client request fails (with a
-`ServiceError`).  When using last-resort caching, a `refresh_probability` can be provided that causes the cached value
-to be refreshed probabilistically (rather than on every request).
+circuit_method :call_remote_service
 
-*first-resort* means that the cached value is always used, if present.  Requests to the service are only made
-when the cached value is close to expiry.
+# Optional
+circuit_handler do |handler|
+ handler.logger = Logger.new(STDOUT)
+ handler.failure_threshold = 5
+ handler.failure_timeout = 5
+ handler.invocation_timeout = 10
+ handler.excluded_exceptions += [NotConsideredFailureException]
+end
+```
+
+Provides a circuit breaker on the class, and turns the class into a singleton.  Each method named using
+`circuit_method` will be wrapped in a circuit breaker that will raise a `Service::ServiceError` if the breaker
+is open.  The circuit will open on any exception from the wrapped method, or if the wrapped method
+runs for longer than the `invocation_timeout`.
+
+Note that `Service::ServiceRequestError` exceptions do NOT trip the breaker, as these exceptions indicate an error
+on the caller's part (e.g. an HTTP 4xx error).
+
+The class is made a singleton using the standard `Singleton` module.  Access to the class's methods should be done
+using its `instance` class method (calls to `new` will fail).
+
+This module is based on (and uses) the [Circuit Breaker](https://github.com/wsargent/circuit_breaker) gem by Will Sargent.
+
+h3. Service::Client::ListResponse
+
+```ruby
+  def get_something(page, page_size)
+    response = JSON.parse(http_get("http://some/url?p=#{page}&l=#{page_size}"))
+    return Service::Client::ListResponse(page_size, response, "items")
+  end
+
+```
+
+Wraps a deserialized response.  A `ListResponse` implements the Ruby `Enumerable` module, as well
+as the methods required to work with [WillPaginate](https://github.com/mislav/will_paginate).
+
+It assumes that the response resembles this form:
+```json
+{
+  "current_page": 1,
+  "total_items": 100,
+  "total_pages": 10,
+  "items": [
+    { /* item 1 */ },
+    { /* item 2 */ },
+    ...
+  ]
+}
+```
+
+The name of the `"items"` key is given in the third argument.
 
 License
 -------
