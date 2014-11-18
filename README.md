@@ -24,8 +24,8 @@ Then use it:
 require 'px-service-client'
 
 class MyClient
-  include PxService::Client::Caching
-  include PxService::Client::CircuitBreaker
+  include Px::Service::Client::::Caching
+  include Px::Service::Client::::CircuitBreaker
 end
 
 ```
@@ -37,10 +37,10 @@ This gem includes several common features used in 500px service client libraries
 
 The features are:
 
-#### PxService::Client::Caching
+#### Px::Service::Client::::Caching
 
 ```ruby
-include PxService::Client::Caching
+include Px::Service::Client::::Caching
 
 self.cache_client =  Dalli::Client.new(...)
 self.cache_logger = Logger.new(STDOUT) # or Rails.logger, for example
@@ -55,7 +55,7 @@ to be refreshed probabilistically (rather than on every request).
 *first-resort* means that the cached value is always used, if present.  Requests to the service are only made
 when the cached value is close to expiry.
 
-#### PxService::Client::CircuitBreaker
+#### Px::Service::Client::::CircuitBreaker
 
 ```ruby
 def call_remote_service() ...
@@ -73,11 +73,11 @@ end
 ```
 
 Provides a circuit breaker on the class, and turns the class into a singleton.  Each method named using
-`circuit_method` will be wrapped in a circuit breaker that will raise a `PxService::ServiceError` if the breaker
+`circuit_method` will be wrapped in a circuit breaker that will raise a `Px::Service::ServiceError` if the breaker
 is open.  The circuit will open on any exception from the wrapped method, or if the wrapped method
 runs for longer than the `invocation_timeout`.
 
-Note that `PxService::ServiceRequestError` exceptions do NOT trip the breaker, as these exceptions indicate an error
+Note that `Px::Service::ServiceRequestError` exceptions do NOT trip the breaker, as these exceptions indicate an error
 on the caller's part (e.g. an HTTP 4xx error).
 
 The class is made a singleton using the standard `Singleton` module.  Access to the class's methods should be done
@@ -85,12 +85,12 @@ using its `instance` class method (calls to `new` will fail).
 
 This module is based on (and uses) the [Circuit Breaker](https://github.com/wsargent/circuit_breaker) gem by Will Sargent.
 
-#### PxService::Client::ListResponse
+#### Px::Service::Client::::ListResponse
 
 ```ruby
   def get_something(page, page_size)
     response = JSON.parse(http_get("http://some/url?p=#{page}&l=#{page_size}"))
-    return PxService::Client::ListResponse(page_size, response, "items")
+    return Px::Service::Client::::ListResponse(page_size, response, "items")
   end
 
 ```

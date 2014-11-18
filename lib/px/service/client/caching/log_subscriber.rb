@@ -1,4 +1,4 @@
-module PxService::Caching
+module Px::Service::Caching
   ##
   # Prints caching events to the log
   class LogSubscriber < ActiveSupport::LogSubscriber

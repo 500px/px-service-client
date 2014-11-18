@@ -1,6 +1,6 @@
 require 'will_paginate/collection'
 
-module PxService::Client
+module Px::Service::Client
   ##
   # This class implements the methods necessary to be compatible with WillPaginate and Enumerable
   class ListResponse

@@ -1,7 +1,7 @@
 require 'spec_helper'
 
-describe PxService::Client::Future do
-  subject { PxService::Client::Future.new(String) }
+describe Px::Service::Client::Future do
+  subject { Px::Service::Client::Future.new(String) }
   let(:value) { "value" }
 
   describe '#complete' do

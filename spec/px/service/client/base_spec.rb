@@ -1,7 +1,7 @@
 require 'spec_helper'
 
-describe PxService::Client::Base do
-  subject { PxService::Client::Base.send(:new) }
+describe Px::Service::Client::Base do
+  subject { Px::Service::Client::Base.send(:new) }
   let(:response) do
     Typhoeus::Response.new(
       code: 200,
@@ -13,7 +13,7 @@ describe PxService::Client::Base do
     let(:url) { 'http://localhost:3000/path' }
 
     it "returns a future response" do
-      expect(subject.send(:make_request, 'get', url)).to be_a(PxService::Client::Future)
+      expect(subject.send(:make_request, 'get', url)).to be_a(Px::Service::Client::Future)
     end
 
     context "with a header" do

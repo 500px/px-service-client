@@ -1,11 +1,11 @@
 # coding: utf-8
 lib = File.expand_path('../lib', __FILE__)
 $LOAD_PATH.unshift(lib) unless $LOAD_PATH.include?(lib)
-require 'px_service/client/version'
+require 'px/service/client/version'
 
 Gem::Specification.new do |spec|
   spec.name          = "px-service-client"
-  spec.version       = PxService::Client::VERSION
+  spec.version       = Px::Service::Client::VERSION
   spec.summary       = %q{Common service client behaviours for Ruby applications}
   spec.authors       = ["Chris Micacchi"]
   spec.email         = ["chris@500px.com"]

@@ -1,4 +1,4 @@
-module PxService
+module Px::Service
   ##
   # Any external service should have its exceptions inherit from this class
   # so that controllers can handle them all nicely with "service is down" pages or whatnot

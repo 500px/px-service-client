@@ -1,7 +1,7 @@
 require 'bundler/setup'
 Bundler.setup
 
-require 'px_service/client'
+require 'px/service/client'
 require 'timecop'
 require 'vcr'
 

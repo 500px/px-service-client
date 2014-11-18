@@ -1,6 +1,6 @@
 require 'spec_helper'
 
-describe PxService::Client::RetriableResponseFuture do
+describe Px::Service::Client::RetriableResponseFuture do
   let(:request) { Typhoeus::Request.new('http://localhost:3000/status') }
   let(:response) do
     Typhoeus::Response.new(
@@ -9,7 +9,7 @@ describe PxService::Client::RetriableResponseFuture do
       headers: { "Content-Type" => "application/json"} )
   end
   let(:hydra) { Typhoeus::Hydra.new }
-  subject { PxService::Client::RetriableResponseFuture.new(request) }
+  subject { Px::Service::Client::RetriableResponseFuture.new(request) }
 
   before :each do
     Typhoeus.stub(/status/).and_return(response)
@@ -48,7 +48,7 @@ describe PxService::Client::RetriableResponseFuture do
         Fiber.new do
           expect {
             subject.total_time
-          }.to raise_error(PxService::ServiceError, "Failed")
+          }.to raise_error(Px::Service::ServiceError, "Failed")
         end.resume
 
         Fiber.new do
@@ -58,12 +58,12 @@ describe PxService::Client::RetriableResponseFuture do
       end
 
       it "retries the request" do
-        f = PxService::Client::RetriableResponseFuture.new(retries: 3)
+        f = Px::Service::Client::RetriableResponseFuture.new(retries: 3)
 
         Fiber.new do
           expect {
             f.response_code
-          }.to raise_error(PxService::ServiceError, "Failed")
+          }.to raise_error(Px::Service::ServiceError, "Failed")
         end.resume
 
         Fiber.new do

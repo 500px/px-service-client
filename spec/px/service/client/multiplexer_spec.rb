@@ -1,12 +1,12 @@
 require 'spec_helper'
 
-describe PxService::Client::Multiplexer do
-  let(:client) { PxService::Client::Base.send(:new) }
+describe Px::Service::Client::Multiplexer do
+  let(:client) { Px::Service::Client::Base.send(:new) }
 
   context '.new' do
     it 'should work with no argments' do
       expect {
-        PxService::Client::Multiplexer.new
+        Px::Service::Client::Multiplexer.new
       }.not_to raise_error
     end
   end
@@ -18,7 +18,7 @@ describe PxService::Client::Multiplexer do
       subject.context do
         resp1 = subject.do(req1)
 
-        expect(resp1).to be_a(PxService::Client::RetriableResponseFuture)
+        expect(resp1).to be_a(Px::Service::Client::RetriableResponseFuture)
       end.run
     end
 

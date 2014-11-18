@@ -1,9 +1,9 @@
 require 'spec_helper'
 require 'dalli'
 
-describe PxService::Client::Caching do
+describe Px::Service::Client::Caching do
   subject {
-    Class.new.include(PxService::Client::Caching).tap do |c|
+    Class.new.include(Px::Service::Client::Caching).tap do |c|
       # Anonymous classes don't have a name.  Stub out :name so that things work
       allow(c).to receive(:name).and_return("Caching")
     end.new
@@ -43,11 +43,11 @@ describe PxService::Client::Caching do
     it "should raise the exception raised by the block" do
       expect{
         subject.cache_request(url, strategy: strategy) do
-          # PxService::ServiceRequestError is not cachable
+          # Px::Service::ServiceRequestError is not cachable
           # and does not trigger a fallback to a cached response
-          raise PxService::ServiceRequestError.new("Error", 404)
+          raise Px::Service::ServiceRequestError.new("Error", 404)
         end
-      }.to raise_error(PxService::ServiceRequestError)
+      }.to raise_error(Px::Service::ServiceRequestError)
     end
   end
 
@@ -55,9 +55,9 @@ describe PxService::Client::Caching do
     it "raises the exception" do
       expect {
         subject.cache_request(url, strategy: strategy) do
-          raise PxService::ServiceError.new("Error", 500)
+          raise Px::Service::ServiceError.new("Error", 500)
         end
-      }.to raise_error(PxService::ServiceError)
+      }.to raise_error(Px::Service::ServiceError)
     end
   end
 
@@ -83,23 +83,23 @@ describe PxService::Client::Caching do
 
       it "returns the cached response on failure" do
         expect(subject.cache_request(url, strategy: strategy) do
-          raise PxService::ServiceError.new("Error", 500)
+          raise Px::Service::ServiceError.new("Error", 500)
         end).to eq(response)
       end
 
       it "does not returns the cached response on request error" do
         expect {
           subject.cache_request(url, strategy: strategy) do
-            raise PxService::ServiceRequestError.new("Error", 404)
+            raise Px::Service::ServiceRequestError.new("Error", 404)
           end
-        }.to raise_error(PxService::ServiceRequestError)
+        }.to raise_error(Px::Service::ServiceRequestError)
       end
 
       it "touches the cache entry on failure" do
         expect(dalli).to receive(:touch).with(a_kind_of(String), a_kind_of(Fixnum))
 
         subject.cache_request(url, strategy: strategy) do
-          raise PxService::ServiceError.new("Error", 500)
+          raise Px::Service::ServiceError.new("Error", 500)
         end
       end
     end
@@ -183,23 +183,23 @@ describe PxService::Client::Caching do
 
       it "returns the cached response on failure" do
         expect(subject.cache_request(url, strategy: strategy) do
-          raise PxService::ServiceError.new("Error", 500)
+          raise Px::Service::ServiceError.new("Error", 500)
         end).to eq(response)
       end
 
       it "does not returns the cached response on request error" do
         expect {
           subject.cache_request(url, strategy: strategy) do
-            raise PxService::ServiceRequestError.new("Error", 404)
+            raise Px::Service::ServiceRequestError.new("Error", 404)
           end
-        }.to raise_error(PxService::ServiceRequestError)
+        }.to raise_error(Px::Service::ServiceRequestError)
       end
 
       it "touches the cache entry on failure" do
         expect(dalli).to receive(:touch).with(a_kind_of(String), a_kind_of(Fixnum)).twice
 
         subject.cache_request(url, strategy: strategy) do
-          raise PxService::ServiceError.new("Error", 500)
+          raise Px::Service::ServiceError.new("Error", 500)
         end
       end
     end
