@@ -1,16 +1,16 @@
 require 'spec_helper'
 
-describe Service::Client::CircuitBreaker do
+describe PxService::Client::CircuitBreaker do
   subject {
-    Class.new.include(Service::Client::CircuitBreaker).tap do |c|
+    Class.new.include(PxService::Client::CircuitBreaker).tap do |c|
       # Anonymous classes don't have a name.  Stub out :name so that things work
       allow(c).to receive(:name).and_return("CircuitBreaker")
     end
   }
 
   describe '#included' do
-    it "excludes Service::ServiceRequestError by default" do
-      expect(subject.circuit_handler.excluded_exceptions).to include(Service::ServiceRequestError)
+    it "excludes PxService::ServiceRequestError by default" do
+      expect(subject.circuit_handler.excluded_exceptions).to include(PxService::ServiceRequestError)
     end
 
     it "sets the failure threshold" do
@@ -44,7 +44,7 @@ describe Service::Client::CircuitBreaker do
     context "when the wrapped method fails with a ServiceRequestError" do
       before :each do
         subject.send(:define_method, :test_method) do |arg|
-          raise Service::ServiceRequestError.new("Error", 404)
+          raise PxService::ServiceRequestError.new("Error", 404)
         end
 
         subject.circuit_method(:test_method)
@@ -53,14 +53,14 @@ describe Service::Client::CircuitBreaker do
       it "raises a ServiceRequestError" do
         expect{
           subject.instance.test_method("test")
-        }.to raise_error(Service::ServiceRequestError, "Error")
+        }.to raise_error(PxService::ServiceRequestError, "Error")
       end
     end
 
     context "when the wrapped method fails with a ServiceError" do
       before :each do
         subject.send(:define_method, :test_method) do |arg|
-          raise Service::ServiceError.new("Error", 500)
+          raise PxService::ServiceError.new("Error", 500)
         end
 
         subject.circuit_method(:test_method)
@@ -69,7 +69,7 @@ describe Service::Client::CircuitBreaker do
       it "raises a ServiceError" do
         expect{
           subject.instance.test_method("test")
-        }.to raise_error(Service::ServiceError, "Error")
+        }.to raise_error(PxService::ServiceError, "Error")
       end
     end
 
@@ -85,7 +85,7 @@ describe Service::Client::CircuitBreaker do
       it "raises a ServiceError" do
         expect{
           subject.instance.test_method("test")
-        }.to raise_error(Service::ServiceError)
+        }.to raise_error(PxService::ServiceError)
       end
     end
 
@@ -103,7 +103,7 @@ describe Service::Client::CircuitBreaker do
       it "raises a ServiceError" do
         expect{
           subject.instance.test_method("test")
-        }.to raise_error(Service::ServiceError)
+        }.to raise_error(PxService::ServiceError)
       end
     end
   end

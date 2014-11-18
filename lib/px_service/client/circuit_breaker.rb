@@ -1,7 +1,7 @@
 require 'circuit_breaker'
 require 'singleton'
 
-module Service::Client
+module PxService::Client
   module CircuitBreaker
     extend ActiveSupport::Concern
 
@@ -14,7 +14,7 @@ module Service::Client
         handler.failure_threshold = 5
         handler.failure_timeout = 7
         handler.invocation_timeout = 5
-        handler.excluded_exceptions = [Service::ServiceRequestError]
+        handler.excluded_exceptions = [PxService::ServiceRequestError]
       end
 
       class <<self
@@ -35,11 +35,11 @@ module Service::Client
           define_method(meth) do |*args|
             begin
               circuit_handler.handle(self.circuit_state, m.bind(self), *args)
-            rescue Service::ServiceError, Service::ServiceRequestError => ex
+            rescue PxService::ServiceError, PxService::ServiceRequestError => ex
               raise ex
             rescue StandardError => ex
               # Wrap other exceptions, includes CircuitBreaker::CircuitBrokenException
-              raise Service::ServiceError.new(ex.message, 503), ex, ex.backtrace
+              raise PxService::ServiceError.new(ex.message, 503), ex, ex.backtrace
             end
           end
         end

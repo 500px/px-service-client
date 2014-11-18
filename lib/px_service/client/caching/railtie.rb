@@ -1,9 +1,9 @@
-module Service
+module PxService
   module Client
     module Caching
       class Railtie < ::Rails::Railtie
         initializer "service.client.caching" do
-          Service::Client::Caching::LogSubscriber.attach_to :caching
+          PxService::Client::Caching::LogSubscriber.attach_to :caching
         end
       end
     end

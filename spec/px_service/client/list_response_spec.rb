@@ -1,6 +1,6 @@
 require 'spec_helper'
 
-describe Service::Client::ListResponse do
+describe PxService::Client::ListResponse do
   let (:response) do
     {
       "current_page" => 5,
@@ -25,7 +25,7 @@ describe Service::Client::ListResponse do
     }
   end
 
-  subject { Service::Client::ListResponse.new(20, response, "results", name: "value") }
+  subject { PxService::Client::ListResponse.new(20, response, "results", name: "value") }
 
   describe '#results' do
     it "results the results" do
@@ -72,7 +72,7 @@ describe Service::Client::ListResponse do
     end
 
     context "when there are no results" do
-      subject { Service::Client::ListResponse.new(20, empty_response, "results", name: "value") }
+      subject { PxService::Client::ListResponse.new(20, empty_response, "results", name: "value") }
 
       it "returns true" do
         expect(subject.empty?).to be_truthy
@@ -81,7 +81,7 @@ describe Service::Client::ListResponse do
   end
 
   describe '#==' do
-    let(:other_search) { Service::Client::ListResponse.new(20, response, "results", name: "value") }
+    let(:other_search) { PxService::Client::ListResponse.new(20, response, "results", name: "value") }
 
     context "when compared with another response" do
       it "returns true" do

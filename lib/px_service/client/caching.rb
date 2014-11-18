@@ -1,12 +1,12 @@
-require 'service/client/caching/cache_entry'
+require 'px_service/client/caching/cache_entry'
 require 'dalli'
 
 if defined?(Rails)
-  require 'service/caching/log_subscriber'
-  require 'service/caching/railtie'
+  require 'px_service/caching/log_subscriber'
+  require 'px_service/caching/railtie'
 end
 
-module Service::Client
+module PxService::Client
   module Caching
     extend ActiveSupport::Concern
 
@@ -50,7 +50,7 @@ module Service::Client
         entry.store(expires_in, refresh_window: 1.minute) if r == 0
 
         response
-      rescue Service::ServiceError => ex
+      rescue PxService::ServiceError => ex
         cache_logger.error "Service responded with exception: #{ex.class.name}: #{ex.message}\n#{ex.backtrace.join('\n')}" if cache_logger
 
         entry = CacheEntry.fetch(cache_client, url, policy_group)
@@ -90,7 +90,7 @@ module Service::Client
         entry = CacheEntry.new(cache_client, url, policy_group, response)
         entry.store(expires_in)
         response
-      rescue Service::ServiceError => ex
+      rescue PxService::ServiceError => ex
         cache_logger.error "Service responded with exception: #{ex.class.name}: #{ex.message}\n#{ex.backtrace.join('\n')}" if cache_logger
 
         if entry.nil?
