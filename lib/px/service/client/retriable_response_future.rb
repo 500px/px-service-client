@@ -9,7 +9,7 @@ module Px::Service::Client
     attr_reader :hydra, :request
 
     def initialize(request = nil, retries: DEFAULT_RETRIES)
-      super(Typhoeus::Response)
+      super()
 
       @retries = retries
       self.request = request if request

@@ -1,7 +1,7 @@
 require 'spec_helper'
 
 describe Px::Service::Client::Future do
-  subject { Px::Service::Client::Future.new(String) }
+  subject { Px::Service::Client::Future.new }
   let(:value) { "value" }
 
   describe '#complete' do
@@ -102,6 +102,20 @@ describe Px::Service::Client::Future do
         end
       end
 
+      context "when the method doesn't exist" do
+        before :each do
+          subject.complete("I am a string")
+        end
+
+        it "raises an exception" do
+          Fiber.new do
+            expect {
+              subject.not_exist
+            }.to raise_error(NoMethodError)
+          end.resume
+        end
+      end
+
       context "when the method returns a value" do
         before :each do
           subject.complete(value)
@@ -134,6 +148,20 @@ describe Px::Service::Client::Future do
 
           Fiber.new do
             subject.complete(nil)
+          end.resume
+        end
+      end
+
+      context "when the method doesn't exist on the eventual value" do
+        it "raises an exception" do
+          Fiber.new do
+            expect {
+              subject.not_exist
+            }.to raise_error(NoMethodError)
+          end.resume
+
+          Fiber.new do
+            subject.complete("I am a string")
           end.resume
         end
       end
