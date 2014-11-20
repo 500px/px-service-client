@@ -1,4 +1,4 @@
-module Service::Client::Caching
+module Px::Service::Client::Caching
   class CacheEntry
     attr_accessor :url, :data, :expires_at, :policy_group
     attr_reader :cache_client

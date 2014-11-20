@@ -1,0 +1,47 @@
+---
+http_interactions:
+- request:
+    method: get
+    uri: http://localhost:3000/status
+    body:
+      encoding: US-ASCII
+      string: ''
+    headers:
+      User-Agent:
+      - Typhoeus - https://github.com/typhoeus/typhoeus
+  response:
+    status:
+      code: 200
+      message: OK
+    headers:
+      X-Frame-Options:
+      - SAMEORIGIN
+      Content-Type:
+      - text/html; charset=utf-8
+      X-UA-Compatible:
+      - IE=Edge
+      ETag:
+      - "\"e0aa021e21dddbd6d8cecec71e9cf564\""
+      Cache-Control:
+      - max-age=0, private, must-revalidate
+      Set-Cookie:
+      - landing_page=%2Fstatus; path=/
+      - referrer_type=other; path=/
+      - _hpx1=BAh7B0kiD3Nlc3Npb25faWQGOgZFVEkiJWRjZDUwNzlmZjk1ODk5YzE1Y2EzZTc1NmY1ODYxOTMzBjsAVEkiCWhvc3QGOwBGIg5sb2NhbGhvc3Q%3D--a8c89b4b744bcced78ab027bd26c99f560af9847;
+        path=/; HttpOnly
+      X-Request-Id:
+      - f27de50bbf4924df91daf6d12ae76b06
+      X-Runtime:
+      - '22.558991'
+      Connection:
+      - close
+      Server:
+      - thin 1.5.0 codename Knife
+    body:
+      encoding: UTF-8
+      string: OK
+    http_version: '1.1'
+    adapter_metadata:
+      effective_url: http://localhost:3000/status
+  recorded_at: Tue, 11 Nov 2014 20:22:51 GMT
+recorded_with: VCR 2.9.3

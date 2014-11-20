@@ -1,0 +1,91 @@
+---
+http_interactions:
+- request:
+    method: get
+    uri: http://localhost:3000/status
+    body:
+      encoding: US-ASCII
+      string: ''
+    headers:
+      User-Agent:
+      - Typhoeus - https://github.com/typhoeus/typhoeus
+  response:
+    status:
+      code: 200
+      message: OK
+    headers:
+      X-Frame-Options:
+      - SAMEORIGIN
+      Content-Type:
+      - text/html; charset=utf-8
+      X-UA-Compatible:
+      - IE=Edge
+      ETag:
+      - "\"e0aa021e21dddbd6d8cecec71e9cf564\""
+      Cache-Control:
+      - max-age=0, private, must-revalidate
+      Set-Cookie:
+      - landing_page=%2Fstatus; path=/
+      - referrer_type=other; path=/
+      - _hpx1=BAh7B0kiD3Nlc3Npb25faWQGOgZFVEkiJTRiMWVlZjEyYTA3ZmQ2NTA5NzMzNThlZmRjODUwOTJlBjsAVEkiCWhvc3QGOwBGIg5sb2NhbGhvc3Q%3D--70cae34deed03c594c3ab738150b3d7e20b32fb2;
+        path=/; HttpOnly
+      X-Request-Id:
+      - 7dae1a92439fed487abb36164364741a
+      X-Runtime:
+      - '0.017075'
+      Connection:
+      - close
+      Server:
+      - thin 1.5.0 codename Knife
+    body:
+      encoding: UTF-8
+      string: OK
+    http_version: '1.1'
+    adapter_metadata:
+      effective_url: http://localhost:3000/status
+  recorded_at: Tue, 11 Nov 2014 20:22:51 GMT
+- request:
+    method: get
+    uri: http://localhost:3000/status
+    body:
+      encoding: US-ASCII
+      string: ''
+    headers:
+      User-Agent:
+      - Typhoeus - https://github.com/typhoeus/typhoeus
+  response:
+    status:
+      code: 200
+      message: OK
+    headers:
+      X-Frame-Options:
+      - SAMEORIGIN
+      Content-Type:
+      - text/html; charset=utf-8
+      X-UA-Compatible:
+      - IE=Edge
+      ETag:
+      - "\"e0aa021e21dddbd6d8cecec71e9cf564\""
+      Cache-Control:
+      - max-age=0, private, must-revalidate
+      Set-Cookie:
+      - landing_page=%2Fstatus; path=/
+      - referrer_type=other; path=/
+      - _hpx1=BAh7B0kiD3Nlc3Npb25faWQGOgZFVEkiJTgyMjA5OGEzN2Y3YTczN2ViMzk0ODRjOTk4MTEyNDIzBjsAVEkiCWhvc3QGOwBGIg5sb2NhbGhvc3Q%3D--972313d92247acf7eff13cc669f2c8b4c481e92c;
+        path=/; HttpOnly
+      X-Request-Id:
+      - 8ac3f0a3228f949c5599419f2996d8ca
+      X-Runtime:
+      - '0.016529'
+      Connection:
+      - close
+      Server:
+      - thin 1.5.0 codename Knife
+    body:
+      encoding: UTF-8
+      string: OK
+    http_version: '1.1'
+    adapter_metadata:
+      effective_url: http://localhost:3000/status
+  recorded_at: Tue, 11 Nov 2014 20:22:51 GMT
+recorded_with: VCR 2.9.3
