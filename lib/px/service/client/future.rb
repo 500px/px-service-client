@@ -14,13 +14,13 @@ module Px::Service::Client
       @pending_calls = []
 
       if block_given?
-        Fiber.new{
+        Fiber.new do
           begin
             complete(yield)
           rescue Exception => ex
             complete(ex)
           end
-        }.resume
+        end.resume
       end
     end
 
@@ -61,7 +61,6 @@ module Px::Service::Client
     end
 
     def method_missing(method, *args)
-
       if @completed
         super unless respond_to_missing?(method)
 
@@ -76,11 +75,7 @@ module Px::Service::Client
 
     def respond_to_missing?(method, include_private = false)
       if @completed
-        if include_private
-          @value.class.instance_methods.include?(method)
-        else
-          @value.class.public_instance_methods.include?(method)
-        end
+        @value.respond_to?(method, include_private)
       else
         true
       end

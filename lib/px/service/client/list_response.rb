@@ -72,7 +72,7 @@ module Px::Service::Client
       results.send(method_name, *arguments, &block)
     end
 
-    def respond_to?(method_name, include_private = false)
+    def respond_to_missing?(method_name, include_private = false)
       results.respond_to?(method_name, include_private)
     end
 

@@ -76,15 +76,17 @@ module Px::Service::Client
       retries_left = retries
 
       request.on_complete do |response|
-        if response.success? || retries_left <= 0
-          # Call the old callbacks
-          old_on_complete.map do |callback|
-            response.handled_response = callback.call(response)
+        if !self.completed?
+          if response.success? || retries_left <= 0
+            # Call the old callbacks
+            old_on_complete.map do |callback|
+              response.handled_response = callback.call(response)
+            end
+          else
+            # Retry
+            retries_left -= 1
+            hydra.queue(response.request)
           end
-        else
-          # Retry
-          retries_left -= 1
-          hydra.queue(response.request)
         end
       end
     end
