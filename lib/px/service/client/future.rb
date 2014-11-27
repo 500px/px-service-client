@@ -62,9 +62,9 @@ module Px::Service::Client
 
     def method_missing(method, *args)
       if @completed
-        super unless respond_to_missing?(method)
-
         raise @value if @value.kind_of?(Exception)
+
+        super unless respond_to_missing?(method)
         @value.send(method, *args)
       else
         result = wait_for_value(method, *args)

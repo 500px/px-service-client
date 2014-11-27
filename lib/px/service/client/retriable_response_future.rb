@@ -77,7 +77,11 @@ module Px::Service::Client
 
       request.on_complete do |response|
         if !self.completed?
-          if response.success? || retries_left <= 0
+          # Don't retry on success, client error, or after exhausting our retry count
+          if response.success? ||
+              response.response_code >= 400 && response.response_code <= 499 ||
+              retries_left <= 0
+
             # Call the old callbacks
             old_on_complete.map do |callback|
               response.handled_response = callback.call(response)
