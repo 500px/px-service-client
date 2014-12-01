@@ -74,11 +74,10 @@ module Px::Service::Client
     end
 
     def respond_to_missing?(method, include_private = false)
-      if @completed
-        @value.respond_to?(method, include_private)
-      else
-        true
-      end
+      # NoMethodError is handled by method_missing here, so that exceptions
+      # are raised properly even though they don't respond_to the same things
+      # as the future values themselves
+      true
     end
 
     private
