@@ -1,5 +1,4 @@
 require 'circuit_breaker'
-require 'singleton'
 
 module Px::Service::Client
   module CircuitBreaker
@@ -7,7 +6,6 @@ module Px::Service::Client
 
     included do
       include ::CircuitBreaker
-      include Singleton
 
       # Default circuit breaker configuration.  Can be overridden
       circuit_handler do |handler|
