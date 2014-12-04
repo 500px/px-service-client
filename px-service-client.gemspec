@@ -20,7 +20,7 @@ Gem::Specification.new do |spec|
   spec.add_dependency "will_paginate", "~> 3.0"
   spec.add_dependency "dalli"
   spec.add_dependency "typhoeus"
-  spec.add_dependency "activesupport", "~> 4.1"
+  spec.add_dependency "activesupport"
   spec.add_dependency "circuit_breaker", "~> 1.1"
 
   spec.add_development_dependency "bundler", "~> 1.6"
