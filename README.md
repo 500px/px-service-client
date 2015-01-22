@@ -24,8 +24,8 @@ Then use it:
 require 'px-service-client'
 
 class MyClient
-  include Px::Service::Client::::Caching
-  include Px::Service::Client::::CircuitBreaker
+  include Px::Service::Client::Caching
+  include Px::Service::Client::CircuitBreaker
 end
 
 ```
@@ -37,10 +37,10 @@ This gem includes several common features used in 500px service client libraries
 
 The features are:
 
-#### Px::Service::Client::::Caching
+#### Px::Service::Client::Caching
 
 ```ruby
-include Px::Service::Client::::Caching
+include Px::Service::Client::Caching
 
 self.cache_client =  Dalli::Client.new(...)
 self.cache_logger = Logger.new(STDOUT) # or Rails.logger, for example
@@ -55,7 +55,7 @@ to be refreshed probabilistically (rather than on every request).
 *first-resort* means that the cached value is always used, if present.  Requests to the service are only made
 when the cached value is close to expiry.
 
-#### Px::Service::Client::::CircuitBreaker
+#### Px::Service::Client::CircuitBreaker
 
 ```ruby
 def call_remote_service() ...
@@ -85,12 +85,12 @@ using its `instance` class method (calls to `new` will fail).
 
 This module is based on (and uses) the [Circuit Breaker](https://github.com/wsargent/circuit_breaker) gem by Will Sargent.
 
-#### Px::Service::Client::::ListResponse
+#### Px::Service::Client::ListResponse
 
 ```ruby
   def get_something(page, page_size)
     response = JSON.parse(http_get("http://some/url?p=#{page}&l=#{page_size}"))
-    return Px::Service::Client::::ListResponse(page_size, response, "items")
+    return Px::Service::Client::ListResponse(page_size, response, "items")
   end
 
 ```
