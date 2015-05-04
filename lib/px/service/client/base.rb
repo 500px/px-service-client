@@ -18,13 +18,14 @@ module Px::Service::Client
       end
     end
 
-    def make_request(method, uri, query: nil, headers: nil, body: nil)
+    def make_request(method, uri, query: nil, headers: nil, body: nil, ssl_verifyhost: 2)
       req = Typhoeus::Request.new(
         uri,
         method: method,
         params: query,
         body: body,
-        headers: headers)
+        headers: headers,
+        ssl_verifyhost: ssl_verifyhost)
 
       start_time = Time.now
       logger.debug "Making request #{method.to_s.upcase} #{uri}" if logger
