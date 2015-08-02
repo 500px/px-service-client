@@ -3,6 +3,7 @@ Bundler.setup
 
 require 'px/service/client'
 require 'timecop'
+require 'pry'
 require 'vcr'
 
 ##

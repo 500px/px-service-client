@@ -56,6 +56,17 @@ module Px::Service::Client
       end
     end
 
+    def value!
+      if @completed
+        result = @value
+      else
+        result = wait_for_value(nil)
+      end
+      raise result if result.kind_of?(Exception)
+
+      result
+    end
+
     def completed?
       @completed
     end
