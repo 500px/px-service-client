@@ -36,7 +36,7 @@ describe Px::Service::Client::CircuitBreaker do
   end
 
   describe '#make_request' do
-    context "when the wrapped method succeeds" do
+    context "when the underlying request method succeeds" do
       before :each do
         subject_class.send(:define_method, :_result) do
           "returned test"
@@ -50,6 +50,28 @@ describe Px::Service::Client::CircuitBreaker do
       it "returns the return value" do
         expect(subject.make_request(:get, "http://test").value!).to eq("returned test")
       end
+
+      context "when the breaker is open" do
+        before :each do
+          allow(subject_class.circuit_handler).to receive(:is_timeout_exceeded).and_return(true)
+
+          subject.circuit_state.trip
+          subject.circuit_state.last_failure_time = Time.now
+          subject.circuit_state.failure_count = 5
+        end
+
+        it "resets the failure count of the breaker" do
+          expect {
+            subject.make_request(:get, "http://test").value!
+          }.to change{subject.class.circuit_state.failure_count}.to(0)
+        end
+
+        it "closes the breaker" do
+          expect {
+            subject.make_request(:get, "http://test").value!
+          }.to change{subject.class.circuit_state.closed?}.from(false).to(true)
+        end
+      end
     end
 
     context "when the wrapped method fails with a ServiceRequestError" do
@@ -60,9 +82,15 @@ describe Px::Service::Client::CircuitBreaker do
       end
 
       it "raises a ServiceRequestError" do
-        expect{
+        expect {
           subject.make_request(:get, "http://test").value!
         }.to raise_error(Px::Service::ServiceRequestError, "Error")
+      end
+
+      it "does not increment the failure count of the breaker" do
+        expect {
+          subject.make_request(:get, "http://test").value! rescue nil
+        }.not_to change{subject.class.circuit_state.failure_count}
       end
     end
 
@@ -74,9 +102,15 @@ describe Px::Service::Client::CircuitBreaker do
       end
 
       it "raises a ServiceError" do
-        expect{
+        expect {
           subject.make_request(:get, "http://test").value!
         }.to raise_error(Px::Service::ServiceError, "Error")
+      end
+
+      it "increments the failure count of the breaker" do
+        expect {
+          subject.make_request(:get, "http://test").value! rescue nil
+        }.to change{subject.class.circuit_state.failure_count}.by(1)
       end
     end
 
@@ -91,7 +125,7 @@ describe Px::Service::Client::CircuitBreaker do
       end
 
       it "raises a ServiceError" do
-        expect{
+        expect {
           subject.make_request(:get, "http://test").value!
         }.to raise_error(Px::Service::ServiceError)
       end
@@ -127,7 +161,7 @@ describe Px::Service::Client::CircuitBreaker do
         end
 
         it "raises a ServiceError on the first instance" do
-          expect{
+          expect {
             subject.make_request(:get, "http://test").value!
           }.to raise_error(Px::Service::ServiceError)
         end
@@ -154,13 +188,13 @@ describe Px::Service::Client::CircuitBreaker do
         end
 
         it "raises a ServiceError on the first instance" do
-          expect{
+          expect {
             subject.make_request(:get, "http://test").value!
           }.to raise_error(Px::Service::ServiceError)
         end
 
         it "raises a ServiceError on the second instance" do
-          expect{
+          expect {
             other.make_request(:get, "http://test").value!
           }.to raise_error(Px::Service::ServiceError)
         end
