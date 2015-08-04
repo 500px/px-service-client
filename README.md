@@ -58,10 +58,6 @@ when the cached value is close to expiry.
 #### Px::Service::Client::CircuitBreaker
 
 ```ruby
-def call_remote_service() ...
-
-circuit_method :call_remote_service
-
 # Optional
 circuit_handler do |handler|
  handler.logger = Logger.new(STDOUT)
@@ -72,16 +68,12 @@ circuit_handler do |handler|
 end
 ```
 
-Provides a circuit breaker on the class, and turns the class into a singleton.  Each method named using
-`circuit_method` will be wrapped in a circuit breaker that will raise a `Px::Service::ServiceError` if the breaker
-is open.  The circuit will open on any exception from the wrapped method, or if the wrapped method
-runs for longer than the `invocation_timeout`.
+Adds a circuit breaker to the client.  The circuit will open on any exception from the wrapped method, or if the request runs for longer than the `invocation_timeout`.
 
-Note that `Px::Service::ServiceRequestError` exceptions do NOT trip the breaker, as these exceptions indicate an error
-on the caller's part (e.g. an HTTP 4xx error).
+Note that `Px::Service::ServiceRequestError` exceptions do NOT trip the breaker, as these exceptions indicate an error on the caller's part (e.g. an HTTP 4xx error).
 
-The class is made a singleton using the standard `Singleton` module.  Access to the class's methods should be done
-using its `instance` class method (calls to `new` will fail).
+Every instance of the class that includes the `CircuitBreaker` concern will share the same circuit state.  You should therefore include `Px::Service::Client::CircuitBreaker` in the most-derived class that subclasses
+`Px::Service::Client::Base`
 
 This module is based on (and uses) the [Circuit Breaker](https://github.com/wsargent/circuit_breaker) gem by Will Sargent.
 
