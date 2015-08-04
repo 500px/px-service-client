@@ -1,11 +1,17 @@
 require 'spec_helper'
 
 describe Px::Service::Client::CircuitBreaker do
-
   let(:subject_class) {
-    Class.new.include(Px::Service::Client::CircuitBreaker).tap do |c|
+    Class.new do
+      def make_request(method, uri, query: nil, headers: nil, body: nil, timeout: 0)
+        Px::Service::Client::Future.new do
+          _result
+        end
+      end
+    end.tap do |c|
       # Anonymous classes don't have a name.  Stub out :name so that things work
       allow(c).to receive(:name).and_return("CircuitBreaker")
+      c.include(Px::Service::Client::CircuitBreaker)
     end
   }
 
@@ -29,85 +35,171 @@ describe Px::Service::Client::CircuitBreaker do
     end
   end
 
-  describe '#circuit_method' do
-    context "when the wrapped method succeeds" do
+  describe '#make_request' do
+    context "when the underlying request method succeeds" do
       before :each do
-        subject_class.send(:define_method, :test_method) do |arg|
-          "returned #{arg}"
+        subject_class.send(:define_method, :_result) do
+          "returned test"
         end
+      end
 
-        subject_class.circuit_method(:test_method)
+      it "returns a Future" do
+        expect(subject.make_request(:get, "http://test")).to be_a_kind_of(Px::Service::Client::Future)
       end
 
       it "returns the return value" do
-        expect(subject.test_method("test")).to eq("returned test")
+        expect(subject.make_request(:get, "http://test").value!).to eq("returned test")
+      end
+
+      context "when the breaker is open" do
+        before :each do
+          allow(subject_class.circuit_handler).to receive(:is_timeout_exceeded).and_return(true)
+
+          subject.circuit_state.trip
+          subject.circuit_state.last_failure_time = Time.now
+          subject.circuit_state.failure_count = 5
+        end
+
+        it "resets the failure count of the breaker" do
+          expect {
+            subject.make_request(:get, "http://test").value!
+          }.to change{subject.class.circuit_state.failure_count}.to(0)
+        end
+
+        it "closes the breaker" do
+          expect {
+            subject.make_request(:get, "http://test").value!
+          }.to change{subject.class.circuit_state.closed?}.from(false).to(true)
+        end
       end
     end
 
     context "when the wrapped method fails with a ServiceRequestError" do
       before :each do
-        subject_class.send(:define_method, :test_method) do |arg|
+        subject_class.send(:define_method, :_result) do
           raise Px::Service::ServiceRequestError.new("Error", 404)
         end
-
-        subject_class.circuit_method(:test_method)
       end
 
       it "raises a ServiceRequestError" do
-        expect{
-          subject.test_method("test")
+        expect {
+          subject.make_request(:get, "http://test").value!
         }.to raise_error(Px::Service::ServiceRequestError, "Error")
+      end
+
+      it "does not increment the failure count of the breaker" do
+        expect {
+          subject.make_request(:get, "http://test").value! rescue nil
+        }.not_to change{subject.class.circuit_state.failure_count}
       end
     end
 
     context "when the wrapped method fails with a ServiceError" do
       before :each do
-        subject_class.send(:define_method, :test_method) do |arg|
+        subject_class.send(:define_method, :_result) do
           raise Px::Service::ServiceError.new("Error", 500)
         end
-
-        subject_class.circuit_method(:test_method)
       end
 
       it "raises a ServiceError" do
-        expect{
-          subject.test_method("test")
+        expect {
+          subject.make_request(:get, "http://test").value!
         }.to raise_error(Px::Service::ServiceError, "Error")
       end
-    end
 
-    context "when the wrapped method fails with another exception" do
-      before :each do
-        subject_class.send(:define_method, :test_method) do |arg|
-          this_is_not_a_method # Raises NoMethodError
-        end
-
-        subject_class.circuit_method(:test_method)
-      end
-
-      it "raises a ServiceError" do
-        expect{
-          subject.test_method("test")
-        }.to raise_error(Px::Service::ServiceError)
+      it "increments the failure count of the breaker" do
+        expect {
+          subject.make_request(:get, "http://test").value! rescue nil
+        }.to change{subject.class.circuit_state.failure_count}.by(1)
       end
     end
 
     context "when the circuit is open" do
       before :each do
-        subject_class.send(:define_method, :test_method) do |arg|
+        subject_class.send(:define_method, :_result) do
           "should not be called"
         end
 
-        subject_class.circuit_method(:test_method)
-
         subject.circuit_state.trip
+        subject.circuit_state.last_failure_time = Time.now
       end
 
       it "raises a ServiceError" do
-        expect{
-          subject.test_method("test")
+        expect {
+          subject.make_request(:get, "http://test").value!
         }.to raise_error(Px::Service::ServiceError)
       end
     end
+
+    context "with multiple classes" do
+      let(:other_class) {
+        Class.new do
+          def make_request(method, uri, query: nil, headers: nil, body: nil, timeout: 0)
+            Px::Service::Client::Future.new do
+              "result"
+            end
+          end
+        end.tap do |c|
+          # Anonymous classes don't have a name.  Stub out :name so that things work
+          allow(c).to receive(:name).and_return("OtherCircuitBreaker")
+          c.include(Px::Service::Client::CircuitBreaker)
+        end
+      }
+
+      let(:other) { other_class.new }
+
+      before :each do
+        subject_class.send(:define_method, :_result) do
+          "should not be called"
+        end
+      end
+
+      context "when the breaker opens on the first instance" do
+        before :each do
+          subject.circuit_state.trip
+          subject.circuit_state.last_failure_time = Time.now
+        end
+
+        it "raises a ServiceError on the first instance" do
+          expect {
+            subject.make_request(:get, "http://test").value!
+          }.to raise_error(Px::Service::ServiceError)
+        end
+
+        it "does not raise a ServiceError on the second instance" do
+          expect(other.make_request(:get, "http://test").value!).to eq("result")
+        end
+      end
+    end
+
+    context "with multiple instances of the same class" do
+      let(:other) { subject_class.new }
+
+      before :each do
+        subject_class.send(:define_method, :_result) do
+          "should not be called"
+        end
+      end
+
+      context "when the breaker opens on the first instance" do
+        before :each do
+          subject.circuit_state.trip
+          subject.circuit_state.last_failure_time = Time.now
+        end
+
+        it "raises a ServiceError on the first instance" do
+          expect {
+            subject.make_request(:get, "http://test").value!
+          }.to raise_error(Px::Service::ServiceError)
+        end
+
+        it "raises a ServiceError on the second instance" do
+          expect {
+            other.make_request(:get, "http://test").value!
+          }.to raise_error(Px::Service::ServiceError)
+        end
+      end
+    end
+
   end
 end

@@ -3,10 +3,9 @@ require 'circuit_breaker'
 module Px::Service::Client
   module CircuitBreaker
     extend ActiveSupport::Concern
+    include ::CircuitBreaker
 
     included do
-      include ::CircuitBreaker
-
       # Default circuit breaker configuration.  Can be overridden
       circuit_handler do |handler|
         handler.failure_threshold = 5
@@ -15,33 +14,49 @@ module Px::Service::Client
         handler.excluded_exceptions = [Px::Service::ServiceRequestError]
       end
 
-      class <<self
-        alias_method_chain :circuit_method, :exceptions
+      cattr_accessor :circuit_state do
+        ::CircuitBreaker::CircuitState.new
       end
+
+      alias_method_chain :make_request, :breaker
     end
 
-
-    module ClassMethods
-      ##
-      # Takes a splat of method names, and wraps them with the circuit_handler.
-      # Overrides the circuit_method provided by ::CircuitBreaker
-      def circuit_method_with_exceptions(*methods)
-        circuit_handler = self.circuit_handler
-
-        methods.each do |meth|
-          m = instance_method(meth)
-          define_method(meth) do |*args|
-            begin
-              circuit_handler.handle(self.circuit_state, m.bind(self), *args)
-            rescue Px::Service::ServiceError, Px::Service::ServiceRequestError => ex
-              raise ex
-            rescue StandardError => ex
-              # Wrap other exceptions, includes CircuitBreaker::CircuitBrokenException
-              raise Px::Service::ServiceError.new(ex.message, 503), ex, ex.backtrace
-            end
+    ##
+    # Make the request, respecting the circuit breaker, if configured
+    def make_request_with_breaker(method, uri, query: nil, headers: nil, body: nil)
+      Future.new do
+        state = self.class.circuit_state
+        handler = self.class.circuit_handler
+        
+        if handler.is_tripped(state)
+          handler.logger.debug("handle: breaker is tripped, refusing to execute: #{state}") if handler.logger
+          begin
+            handler.on_circuit_open(state)
+          rescue StandardError => ex
+            # Wrap and reroute other exceptions, includes CircuitBreaker::CircuitBrokenException
+            raise Px::Service::ServiceError.new(ex.message, 503), ex, ex.backtrace
           end
+        end
+
+        begin
+          response = make_request_without_breaker(
+            method,
+            uri,
+            query: query,
+            headers: headers,
+            body: body,
+            timeout: handler.invocation_timeout)
+
+          result = response.value!
+          handler.on_success(state)
+
+          result
+        rescue Px::Service::ServiceError
+          handler.on_failure(state)
+          raise
         end
       end
     end
+
   end
 end

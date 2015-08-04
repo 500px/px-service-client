@@ -46,7 +46,7 @@ describe Px::Service::Client::Future do
       it "does not call the method on the value" do
         called = false
         Fiber.new do
-          subject.size
+          subject.value
           called = true
         end.resume
 
@@ -77,6 +77,53 @@ describe Px::Service::Client::Future do
       it "returns the value" do
         Fiber.new do
           expect(subject.value).to eq(value)
+        end.resume
+
+        Fiber.new do
+          subject.complete(value)
+        end.resume
+      end
+    end
+  end
+
+  describe '#value!' do
+    context "when the future is not complete" do
+      it "does not call the method on the value" do
+        called = false
+        Fiber.new do
+          subject.value!
+          called = true
+        end.resume
+
+        expect(called).to eq(false)
+      end
+    end
+
+    context "when the future is already complete" do
+      it "returns the value" do
+        subject.complete(value)
+        expect(subject.value!).to eq(value)
+      end
+    end
+
+    context "when the value is an exception" do
+      it "returns the exception" do
+        Fiber.new do
+          expect {
+            subject.value!
+          }.to raise_error(ArgumentError)
+        end.resume
+
+        Fiber.new do
+          subject.complete(ArgumentError.new("Error"))
+        end.resume
+      end
+    end
+
+    context "when the method returns a value" do
+      it "returns the value" do
+        Fiber.new do
+          expect(subject.value!).to eq(value)
         end.resume
 
         Fiber.new do

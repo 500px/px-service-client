@@ -1,7 +1,6 @@
 module Px::Service::Client
   class Base
     include Px::Service::Client::Caching
-    include Px::Service::Client::CircuitBreaker
     cattr_accessor :logger
 
     private
@@ -18,13 +17,16 @@ module Px::Service::Client
       end
     end
 
-    def make_request(method, uri, query: nil, headers: nil, body: nil)
+    ##
+    # Make the request
+    def make_request(method, uri, query: nil, headers: nil, body: nil, timeout: 0)
       req = Typhoeus::Request.new(
         uri,
         method: method,
         params: query,
         body: body,
-        headers: headers)
+        headers: headers,
+        timeout: timeout)
 
       start_time = Time.now
       logger.debug "Making request #{method.to_s.upcase} #{uri}" if logger
@@ -36,6 +38,5 @@ module Px::Service::Client
 
       RetriableResponseFuture.new(req)
     end
-
   end
 end
