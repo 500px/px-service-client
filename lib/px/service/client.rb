@@ -1,6 +1,7 @@
 require 'active_support'
 require 'active_support/core_ext'
 require 'px/service/errors'
+require 'typhoeus'
 
 module Px
   module Service
