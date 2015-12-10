@@ -23,8 +23,9 @@ module Px::Service::Client::Caching
       ActiveSupport::Notifications.instrument("store.caching", { url: url, policy_group: policy_group, expires_in: expires_in} ) do
         real_expiry = real_cache_expiry(expires_in, refresh_window: refresh_window)
         cache_client.multi do
-          cache_client.set(cache_key(:data), data.to_json, real_expiry)
-          cache_client.set(cache_key(:meta), metadata.to_json, real_expiry)
+          data_json = data.is_a?(Hash) ? data.to_json : data
+          cache_client.set(cache_key(:data), data_json, real_expiry)
+          cache_client.set(cache_key(:meta), metadata, real_expiry)
         end
       end
     end
@@ -59,7 +60,7 @@ module Px::Service::Client::Caching
         real_expiry = real_cache_expiry(expires_in, refresh_window: refresh_window)
 
         cache_client.touch(cache_key(:data), real_expiry)
-        cache_client.set(cache_key(:meta), metadata.to_json, real_expiry)
+        cache_client.set(cache_key(:meta), metadata, real_expiry)
       end
     end
 
@@ -70,7 +71,7 @@ module Px::Service::Client::Caching
         "url" => url,
         "pg" => policy_group,
         "expires_at" => expires_at,
-      }
+      }.to_json
     end
 
     def cache_key(type)
