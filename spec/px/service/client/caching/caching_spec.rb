@@ -18,12 +18,21 @@ describe Px::Service::Client::Caching do
   }
 
   let (:url) { "http://search/foo?bar=baz" }
-  let(:response) { { "response" => ["foo", "bar"], "status" => 200 } }
-  let(:entry) { Px::Service::Client::Caching::CacheEntry.new(dalli, url, 'general', response) }
+  let(:multi) { Px::Service::Client::Multiplexer.new }
+  let(:request) { Typhoeus::Request.new(url, method: :get) }
+  let(:future) { Px::Service::Client::RetriableResponseFuture.new(request) }
+  let(:response) do
+    Typhoeus::Response.new(
+      code: 200,
+      body: { status: 200, message: "Success" }.to_json,
+      headers: { "Content-Type" => "application/json"} )
+  end
+  let(:entry) { Px::Service::Client::Caching::CacheEntry.new(dalli, url, 'general', response.options) }
   let(:strategy) { :none }
 
   before :each do
     dalli.flush_all
+    Typhoeus.stub(url).and_return(response)
   end
 
   shared_examples_for "a successful request" do
@@ -38,8 +47,13 @@ describe Px::Service::Client::Caching do
 
     it "should return the block's return value" do
       expect(subject.cache_request(url, strategy: strategy) do
-        response
-      end.value!).to eq(response)
+        resp = nil
+        multi.context do
+          resp = multi.do(future)
+        end.run
+
+        resp
+      end.value!.options).to eq(response.options)
     end
   end
 
@@ -84,7 +98,7 @@ describe Px::Service::Client::Caching do
       it "returns the cached response on failure" do
         expect(subject.cache_request(url, strategy: strategy) do
           Px::Service::Client::Future.new { raise Px::Service::ServiceError.new("Error", 500) }
-        end.value!).to eq(response)
+        end.value!.options).to eq(response.options.stringify_keys)
       end
 
       it "does not returns the cached response on request error" do
@@ -131,7 +145,7 @@ describe Px::Service::Client::Caching do
       it "returns the response" do
         expect(subject.cache_request(url, strategy: strategy) do
           nil
-        end.value!).to eq(response)
+        end.value!.options).to eq(response.options.stringify_keys)
       end
     end
 
@@ -141,7 +155,12 @@ describe Px::Service::Client::Caching do
         entry.expires_at = DateTime.now - 1.day
       end
 
-      let (:response) { { "value" => "response" } }
+      let(:response) do
+        Typhoeus::Response.new(
+          code: 200,
+          body: { status: 200, message: "New response" }.to_json,
+          headers: { "Content-Type" => "application/json"} )
+      end
 
       it "invokes the block" do
         called = false
@@ -153,9 +172,18 @@ describe Px::Service::Client::Caching do
       end
 
       it "returns the new response" do
-        expect(subject.cache_request(url, strategy: strategy) do
-          response
-        end.value!).to eq(response)
+        result = subject.cache_request(url, strategy: strategy) do
+          resp = nil
+          multi.context do
+            resp = multi.do(future)
+          end.run
+
+          resp
+        end.value!
+
+        body = JSON.parse(result.body)
+
+        expect(body[:message]).to eq(JSON.parse(response.body)[:message])
       end
 
       it "updates the cache entry before making the request" do
@@ -166,8 +194,13 @@ describe Px::Service::Client::Caching do
           called = false
           expect(subject.cache_request(url, strategy: strategy) do
             called = true
-            response
-          end.value!).to eq(response)
+            resp = nil
+            multi.context do
+              resp = multi.do(future)
+            end.run
+
+            resp
+          end.value!.options).to eq(response.options.stringify_keys)
 
           expect(called).to be_falsey
 
@@ -177,18 +210,23 @@ describe Px::Service::Client::Caching do
 
       it "caches the new response" do
         subject.cache_request(url, strategy: strategy) do
-          response
+          resp = nil
+          multi.context do
+            resp = multi.do(future)
+          end.run
+
+          resp
         end
 
         expect(subject.cache_request(url, strategy: strategy) do
           nil
-        end.value).to eq(response)
+        end.value.options).to eq(response.options.stringify_keys)
       end
 
       it "returns the cached response on failure" do
         expect(subject.cache_request(url, strategy: strategy) do
           Px::Service::Client::Future.new { raise Px::Service::ServiceError.new("Error", 500) }
-        end.value!).to eq(response)
+        end.value!.options).to eq(response.options.stringify_keys)
       end
 
       it "does not returns the cached response on request error" do

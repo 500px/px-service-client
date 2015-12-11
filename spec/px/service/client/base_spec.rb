@@ -16,7 +16,7 @@ describe Px::Service::Client::Base do
   let(:successful_response) do
     Typhoeus::Response.new(
       code: 200,
-      body: { status: 200, message: "Success"}.to_json,
+      body: { status: 200, message: "Success" }.to_json,
       headers: { "Content-Type" => "application/json"} )
   end
 
@@ -277,7 +277,7 @@ describe Px::Service::Client::Base do
                 end.run
                 
                 resp
-              end.value!['code']).to eq(200)
+              end.value!.response_code).to be(200)
             end
           end
 

@@ -21,13 +21,14 @@ module Px::Service::Client
     end
 
     module ClassMethods
-      DefaultConfig = Struct.new(:cache_strategy, :cache_expiry, :max_page, :cache_options, :cache_client) do
+      DefaultConfig = Struct.new(:cache_strategy, :cache_expiry, :max_page, :cache_options, :cache_logger, :cache_client) do
         def initialize
           self.cache_strategy = :none
           self.cache_expiry = 30.seconds
           self.max_page = nil
           self.cache_options = {}
           self.cache_options[:policy_group] = 'general'
+          self.cache_logger = nil
           self.cache_client = nil
         end
       end
@@ -71,13 +72,10 @@ module Px::Service::Client
 
       Future.new do
         begin
-          if retry_response.is_a?(Future)
-            resp = retry_response.value!.options
-          else
-            resp = retry_response
-          end
+          raise ArgumentError.new('Block did not return a Future.') unless retry_response.is_a?(Future)
+          resp = retry_response.value!
 
-          entry = CacheEntry.new(config.cache_client, url, policy_group, resp)
+          entry = CacheEntry.new(config.cache_client, url, policy_group, resp.options)
 
           # Only store a new result if we roll a 0
           r = rand(refresh_probability)
@@ -93,7 +91,7 @@ module Px::Service::Client
           end
 
           entry.touch(expires_in, refresh_window: 1.minute)
-          entry.data
+          Typhoeus::Response.new(HashWithIndifferentAccess.new(entry.data))
         end
       end
     end
@@ -114,7 +112,7 @@ module Px::Service::Client
           # don't also try to update the cache.
           entry.touch(expires_in)
         else
-          return Future.new { entry.data }
+          return Future.new { Typhoeus::Response.new(HashWithIndifferentAccess.new(entry.data)) }
         end
       end
 
@@ -122,13 +120,10 @@ module Px::Service::Client
 
       Future.new do
         begin
-          if retry_response.is_a?(Future)
-            resp = retry_response.value!.options
-          else
-            resp = retry_response
-          end
+          raise ArgumentError.new('Block did not return a Future.') unless retry_response.is_a?(Future)
+          resp = retry_response.value!
           
-          entry = CacheEntry.new(config.cache_client, url, policy_group, resp)
+          entry = CacheEntry.new(config.cache_client, url, policy_group, resp.options)
           entry.store(expires_in)
           resp
         rescue Px::Service::ServiceError => ex
@@ -143,7 +138,7 @@ module Px::Service::Client
           # Set the entry to be expired again (but reset the refresh window).  This allows the next call to try again
           # (assuming the circuit breaker is reset) but keeps the value in the cache in the meantime
           entry.touch(0.seconds)
-          entry.data
+          Typhoeus::Response.new(HashWithIndifferentAccess.new(entry.data))
         end
       end
     end
@@ -152,13 +147,9 @@ module Px::Service::Client
       retry_response = block.call
 
       Future.new do
-        if retry_response.is_a?(Future)
-          resp = retry_response.value!.options
-        else
-          resp = retry_response
-        end
+        raise ArgumentError.new('Block did not return a Future.') unless retry_response.is_a?(Future)
 
-        resp
+        retry_response.value!
       end
     end
   end
