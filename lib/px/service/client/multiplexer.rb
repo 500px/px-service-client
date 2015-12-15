@@ -18,7 +18,7 @@ module Px::Service::Client
       response = request_or_future
       if request_or_future.is_a?(Typhoeus::Request)
         response = RetriableResponseFuture.new(request_or_future, retries: retries)
-      elsif !request_or_future.is_a?(RetriableResponseFuture)
+      elsif !request_or_future.is_a?(RetriableResponseFuture) || request_or_future.completed?
         return request_or_future
       end
 

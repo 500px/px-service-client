@@ -124,7 +124,7 @@ describe Px::Service::Client::CircuitBreaker do
       it "increments the failure count of the breaker" do
         expect {
           request.value! rescue nil
-        }.to change{subject.class.circuit_state.failure_count}.by(4) # 1 + 3 retries
+        }.to change{subject.class.circuit_state.failure_count}.by(1)
       end
     end
 

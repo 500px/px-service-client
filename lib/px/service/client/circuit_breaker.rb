@@ -26,14 +26,15 @@ module Px::Service::Client
     def make_request_with_breaker(method, uri, query: nil, headers: nil, body: nil)
       state = self.class.circuit_state
       handler = self.class.circuit_handler
-      
+
       if handler.is_tripped(state)
         handler.logger.debug("handle: breaker is tripped, refusing to execute: #{state}") if handler.logger
         begin
           handler.on_circuit_open(state)
         rescue StandardError => ex
           # Wrap and reroute other exceptions, includes CircuitBreaker::CircuitBrokenException
-          raise Px::Service::ServiceError.new(ex.message, 503), ex, ex.backtrace
+          error = Px::Service::ServiceError.new(ex.message, 503)
+          return CircuitBreakerRetriableResponseFuture.new(error)
         end
       end
 
@@ -46,10 +47,13 @@ module Px::Service::Client
         timeout: handler.invocation_timeout)
 
       retry_request.request.on_complete do |response|
-        if response.response_code >= 500 || response.response_code == 0
-          handler.on_failure(state)
-        else
-          handler.on_success(state)
+        # Wait for request to exhaust retries
+        if retry_request.completed?
+          if response.response_code >= 500 || response.response_code == 0
+            handler.on_failure(state)
+          else
+            handler.on_success(state)
+          end
         end
       end
 
