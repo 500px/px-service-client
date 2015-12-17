@@ -83,7 +83,6 @@ module Px::Service::Client
           resp
         rescue Px::Service::ServiceError => ex
           cache_logger.error "Service responded with exception: #{ex.class.name}: #{ex.message}\n#{ex.backtrace.join('\n')}" if cache_logger
-
           entry = CacheEntry.fetch(config.cache_client, url, policy_group)
           if entry.nil?
             # Re-raise the error, no cached response
@@ -141,6 +140,9 @@ module Px::Service::Client
           Typhoeus::Response.new(HashWithIndifferentAccess.new(entry.data))
         end
       end
+
+    rescue ArgumentError => ex
+      Future.new { ex }
     end
 
     def no_cache(&block)
