@@ -42,8 +42,16 @@ The features are:
 ```ruby
 include Px::Service::Client::Caching
 
-self.cache_client =  Dalli::Client.new(...)
-self.cache_logger = Logger.new(STDOUT) # or Rails.logger, for example
+# Optional
+caching do |config|
+  config.cache_strategy = :none
+  config.cache_expiry = 30.seconds
+  config.max_page = nil
+  config.cache_options = {}
+  config.cache_options[:policy_group] = 'general'
+  config.cache_client =  Dalli::Client.new(...)
+  config.cache_logger = Logger.new(STDOUT) # or Rails.logger, for example
+end
 ```
 
 Provides client-side response caching of service requests.  Responses are cached in memcached (using the provided cache client) in either a *last-resort* or *first-resort* manner.
@@ -54,6 +62,22 @@ to be refreshed probabilistically (rather than on every request).
 
 *first-resort* means that the cached value is always used, if present.  Requests to the service are only made
 when the cached value is close to expiry.
+
+An example of a cached request:
+
+```ruby
+req = subject.make_request(method, url)
+result = subject.cache_request(url) do
+  resp = nil
+  multi.context do
+    resp = multi.do(req)
+  end.run
+
+  resp
+end
+```
+
+`cache_request` expects a block that returns a `RetriableResponseFuture`. It then returns a `Typhoeus::Response`.
 
 #### Px::Service::Client::CircuitBreaker
 

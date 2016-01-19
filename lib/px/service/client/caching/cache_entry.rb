@@ -18,13 +18,16 @@ module Px::Service::Client::Caching
     ##
     # Store this entry in the cache with the given expiry.
     def store(expires_in, refresh_window: 5.minutes)
+      raise ArgumentError.new('Cache client has not been set.') unless cache_client.present?
+
       self.expires_at = DateTime.now + expires_in
 
       ActiveSupport::Notifications.instrument("store.caching", { url: url, policy_group: policy_group, expires_in: expires_in} ) do
         real_expiry = real_cache_expiry(expires_in, refresh_window: refresh_window)
         cache_client.multi do
-          cache_client.set(cache_key(:data), data.to_json, real_expiry)
-          cache_client.set(cache_key(:meta), metadata.to_json, real_expiry)
+          data_json = data.is_a?(Hash) ? data.to_json : data
+          cache_client.set(cache_key(:data), data_json, real_expiry)
+          cache_client.set(cache_key(:meta), metadata, real_expiry)
         end
       end
     end
@@ -32,6 +35,8 @@ module Px::Service::Client::Caching
     ##
     # Fetch an entry from the cache.  Returns the entry if it's present, otherwise returns nil
     def self.fetch(cache_client, url, policy_group)
+      raise ArgumentError.new('Cache client has not been set.') unless cache_client.present?
+
       key_values = nil
       data_key = cache_key(url, policy_group, :data)
       meta_key = cache_key(url, policy_group, :meta)
@@ -53,13 +58,15 @@ module Px::Service::Client::Caching
     ##
     # Touch this entry in the cache, updating its expiry time but not its data
     def touch(expires_in, refresh_window: 5.minutes)
+      raise ArgumentError.new('Cache client has not been set.') unless cache_client.present?
+
       self.expires_at = DateTime.now + expires_in
 
       ActiveSupport::Notifications.instrument("touch.caching", { url: url, policy_group: policy_group, expires_in: expires_in} ) do
         real_expiry = real_cache_expiry(expires_in, refresh_window: refresh_window)
 
         cache_client.touch(cache_key(:data), real_expiry)
-        cache_client.set(cache_key(:meta), metadata.to_json, real_expiry)
+        cache_client.set(cache_key(:meta), metadata, real_expiry)
       end
     end
 
@@ -70,7 +77,7 @@ module Px::Service::Client::Caching
         "url" => url,
         "pg" => policy_group,
         "expires_at" => expires_at,
-      }
+      }.to_json
     end
 
     def cache_key(type)

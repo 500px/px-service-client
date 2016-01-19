@@ -1,6 +1,5 @@
 module Px::Service::Client
   class Base
-    include Px::Service::Client::Caching
     cattr_accessor :logger
 
     private
