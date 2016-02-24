@@ -39,6 +39,8 @@ The features are:
 
 #### Px::Service::Client::Caching
 
+Provides client-side response caching of service requests.  
+
 ```ruby
 include Px::Service::Client::Caching
 
@@ -52,22 +54,10 @@ caching do |config|
   config.cache_client =  Dalli::Client.new(...)
   config.cache_logger = Logger.new(STDOUT) # or Rails.logger, for example
 end
-```
 
-Provides client-side response caching of service requests.  Responses are cached in memcached (using the provided cache client) in either a *last-resort* or *first-resort* manner.
-
-*last-resort* means that the cached value is only used when the service client request fails (with a
-`ServiceError`).  When using last-resort caching, a `refresh_probability` can be provided that causes the cached value
-to be refreshed probabilistically (rather than on every request).
-
-*first-resort* means that the cached value is always used, if present.  Requests to the service are only made
-when the cached value is close to expiry.
-
-An example of a cached request:
-
-```ruby
+# An example of a cached request
 req = subject.make_request(method, url)
-result = subject.cache_request(url) do
+result = subject.cache_request(url,:last_resort) do
   resp = nil
   multi.context do
     resp = multi.do(req)
@@ -77,7 +67,17 @@ result = subject.cache_request(url) do
 end
 ```
 
-`cache_request` expects a block that returns a `RetriableResponseFuture`. It then returns a `Typhoeus::Response`.
+`cache_request` expects a block that returns a `RetriableResponseFuture`. It then returns a `Typhoeus::Response`. If neither the cache nor the response does not have the data, the exception `ServiceError` will be re-raised. 
+
+Responses are cached in memcached (using the provided cache client) in either a *last-resort* or *first-resort* manner.
+
+*last-resort* means that the cached value is only used when the service client request fails (with a
+`ServiceError`). If the service client request succeeds, there is a chance that the cache value may get refreshed. The `refresh_probability` is provided to let the cached value
+be refreshed probabilistically (rather than on every request). 
+
+If the service client request fails and there is a `ServiceError`, `cache_logger` will record the exception message, and attempt to read the existing cache value. 
+
+*first-resort* means that the cached value is always used, if present.  If the cached value is present but expired, the it sends the service client request and, if the request succeeds, it refreshes the cached value expiry. If the request fails, it uses the expired cached value, but the value remain expired. A retry may be needed. 
 
 #### Px::Service::Client::CircuitBreaker
 
