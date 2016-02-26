@@ -56,18 +56,18 @@ caching do |config|
 end
 
 # An example of a cached request
+method = :get
 req = subject.make_request(method, url)
 result = subject.cache_request(url,:last_resort) do
   resp = nil
   multi.context do
     resp = multi.do(req)
   end.run
-
   resp
 end
 ```
 
-`cache_request` expects a block that returns a `RetriableResponseFuture`. It then returns a `Typhoeus::Response`. If neither the cache nor the response does not have the data, the exception `ServiceError` will be re-raised. 
+`cache_request` expects a block that returns a `RetriableResponseFuture`. It then returns a `Typhoeus::Response`. If neither the cache nor the response has the data, the exception `ServiceError` will be re-raised. 
 
 Responses are cached in memcached (using the provided cache client) in either a *last-resort* or *first-resort* manner.
 
@@ -90,9 +90,16 @@ circuit_handler do |handler|
  handler.invocation_timeout = 10
  handler.excluded_exceptions += [NotConsideredFailureException]
 end
+
+# An example of a make request
+method = :get
+req = subject.make_request(method, url)
+
 ```
 
 Adds a circuit breaker to the client.  The circuit will open on any exception from the wrapped method, or if the request runs for longer than the `invocation_timeout`.
+
+If the circuit is open, any future request will be get an error message wrapped in `CircuitBreakerRetriableResponseFuture`. 
 
 Note that `Px::Service::ServiceRequestError` exceptions do NOT trip the breaker, as these exceptions indicate an error on the caller's part (e.g. an HTTP 4xx error).
 
