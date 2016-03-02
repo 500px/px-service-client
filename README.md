@@ -56,9 +56,11 @@ caching do |config|
 end
 
 # An example of a cached request
+multi = Px::Service::Client::Multiplexer.new
 method = :get
+
 req = subject.make_request(method, url)
-result = subject.cache_request(url,:last_resort) do
+result = subject.cache_request(url,:last_resort, refresh_probability: 1) do
   resp = nil
   multi.context do
     resp = multi.do(req)
@@ -79,6 +81,11 @@ If the service client request fails and there is a `ServiceError`, `cache_logger
 
 *first-resort* means that the cached value is always used, if present.  If the cached value is present but expired, the it sends the service client request and, if the request succeeds, it refreshes the cached value expiry. If the request fails, it uses the expired cached value, but the value remain expired. A retry may be needed. 
 
+#### Px::Service::Client::Multiplexer
+In the example above, what `multi.context do` does is to queue a request on the multiplexer, with retry. The retry number is `RetriableResponseFuture::DEFAULT_RETRIES` by default.
+
+If the request is a `Typhoeus::Request`, it returns `RetriableResponseFuture`, and will automatically queue the request on `hydra`. Otherwise the request will be returned.
+
 #### Px::Service::Client::CircuitBreaker
 
 ```ruby
@@ -92,19 +99,25 @@ circuit_handler do |handler|
 end
 
 # An example of a make request
+multi = Px::Service::Client::Multiplexer.new
 method = :get
-req = subject.make_request(method, url)
 
+req = subject.make_request(method, url)
+multi.context do
+   multi.do(req)
+end.run
 ```
 
-Adds a circuit breaker to the client.  The circuit will open on any exception from the wrapped method, or if the request runs for longer than the `invocation_timeout`.
+Adds a circuit breaker to the client.  If the underlying method succeeds, `make_request` returns `Px::Service::Client::RetriableResponseFuture`
 
-If the circuit is open, any future request will be get an error message wrapped in `CircuitBreakerRetriableResponseFuture`. 
+The circuit will open on any exception from the wrapped method, or if the request runs for longer than the `invocation_timeout`.
 
-Note that `Px::Service::ServiceRequestError` exceptions do NOT trip the breaker, as these exceptions indicate an error on the caller's part (e.g. an HTTP 4xx error).
+If the circuit is open, any future request will be get an error message wrapped in `Px::Service::ServiceError`. 
+
+By default, `Px::Service::ServiceRequestError` is excluded by the handler. That is, when the request fails with a `ServiceRequestError` exceptions, the same `ServiceRequestError` will be raised. But it does NOT increase the failure count or trip the breaker, as these exceptions indicate an error on the caller's part (e.g. an HTTP 4xx error).
 
 Every instance of the class that includes the `CircuitBreaker` concern will share the same circuit state.  You should therefore include `Px::Service::Client::CircuitBreaker` in the most-derived class that subclasses
-`Px::Service::Client::Base`
+`Px::Service::Client::Base`.
 
 This module is based on (and uses) the [Circuit Breaker](https://github.com/wsargent/circuit_breaker) gem by Will Sargent.
 
