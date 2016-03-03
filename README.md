@@ -23,7 +23,7 @@ Then use it:
 ```ruby
 require 'px-service-client'
 
-class MyClient
+class MyClient < Px::Service::Client::Base
   include Px::Service::Client::Caching
   include Px::Service::Client::CircuitBreaker
 end
@@ -36,6 +36,34 @@ Features
 This gem includes several common features used in 500px service client libraries.
 
 The features are:
+#### Px::Service::Client::Base
+This class provides a basic `make_request(method, url, ...)` method that produces an asynchronous request. The method immediately returns a `RetriableResponseFuture`, and the actual execution of the request is delayed until you evaluate the value of the `RetriableResponseFuture `. 
+
+**Customized clients usually inherit this class and include other features, if needed.**  
+
+#### Px::Service::Client::Multiplexer
+This class works together with `Px::Service::Client::Base` sub-classes to support request parallel execution. 
+
+Example:
+
+```Ruby
+multi = Px::Service::Client::Multiplexer.new
+
+multi.context do
+	method = :get
+	url = 'http://www.example.com'
+	req = make_request(method, url) # returns a 	RetriableResponseFuture
+	multi.do(req) # queues the request/future into hydra
+end
+
+multi.run # a blocking call, like hydra.run
+
+```
+`multi.context` encapsulates the block into a [`Fiber`](http://ruby-doc.org/core-2.2.0/Fiber.html) object and immediately runs (or `resume`, in Fiber's term) that fiber until the block explicitly gives up control. The method returns `multi` itself. 
+
+`multi.do(request_or_future,retries)` queues the request into `hydra`. It always returns a `RetriableResponseFuture`. A  [`Typhoeus::Request`](https://github.com/typhoeus/typhoeus) will be converted into a `RetriableResponseFuture ` in this call. 
+
+Finally, `multi.run` starts `hydra` to execute the reqeusts in parallel. 
 
 #### Px::Service::Client::Caching
 
@@ -56,20 +84,12 @@ caching do |config|
 end
 
 # An example of a cached request
-multi = Px::Service::Client::Multiplexer.new
-method = :get
-
-req = subject.make_request(method, url)
-result = subject.cache_request(url,:last_resort, refresh_probability: 1) do
-  resp = nil
-  multi.context do
-    resp = multi.do(req)
-  end.run
-  resp
+result = cache_request(url, :last_resort, refresh_probability: 1) do
+	req = make_request(method, url)
 end
 ```
 
-`cache_request` expects a block that returns a `RetriableResponseFuture`. It then returns a `Typhoeus::Response`. If neither the cache nor the response has the data, the exception `ServiceError` will be re-raised. 
+`cache_request` expects a block that does the `make_request` and returns a `RetriableResponseFuture`. The block takes no argument. If neither the cache nor the response has the data, the exception `ServiceError` will be re-raised. 
 
 Responses are cached in memcached (using the provided cache client) in either a *last-resort* or *first-resort* manner.
 
@@ -81,14 +101,14 @@ If the service client request fails and there is a `ServiceError`, `cache_logger
 
 *first-resort* means that the cached value is always used, if present.  If the cached value is present but expired, the it sends the service client request and, if the request succeeds, it refreshes the cached value expiry. If the request fails, it uses the expired cached value, but the value remain expired. A retry may be needed. 
 
-#### Px::Service::Client::Multiplexer
-In the example above, what `multi.context do` does is to queue a request on the multiplexer, with retry. The retry number is `RetriableResponseFuture::DEFAULT_RETRIES` by default.
 
-If the request is a `Typhoeus::Request`, it returns `RetriableResponseFuture`, and will automatically queue the request on `hydra`. Otherwise the request will be returned.
 
 #### Px::Service::Client::CircuitBreaker
+This mixin overrides `Px::Service::Client::Base#make_request` method and implements the circuit breaker pattern. 
 
 ```ruby
+include Px::Service::Client::CircuitBreaker
+
 # Optional
 circuit_handler do |handler|
  handler.logger = Logger.new(STDOUT)
@@ -98,17 +118,11 @@ circuit_handler do |handler|
  handler.excluded_exceptions += [NotConsideredFailureException]
 end
 
-# An example of a make request
-multi = Px::Service::Client::Multiplexer.new
-method = :get
-
-req = subject.make_request(method, url)
-multi.context do
-   multi.do(req)
-end.run
+# An example of a make a request with circuit breaker
+req = make_request(method, url) # overrides Px::Service::Client::Base
 ```
 
-Adds a circuit breaker to the client.  If the underlying method succeeds, `make_request` returns `Px::Service::Client::RetriableResponseFuture`
+Adds a circuit breaker to the client.  `make_request` always returns `RetriableResponseFuture`
 
 The circuit will open on any exception from the wrapped method, or if the request runs for longer than the `invocation_timeout`.
 
