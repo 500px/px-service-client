@@ -36,10 +36,13 @@ Features
 This gem includes several common features used in 500px service client libraries.
 
 The features are:
-#### Px::Service::Client::Base
-This class provides a basic `make_request(method, url, ...)` method that produces an asynchronous request. The method immediately returns a `RetriableResponseFuture`, and the actual execution of the request is delayed until you evaluate the value of the `RetriableResponseFuture `. 
 
-**Customized clients usually inherit this class and include other features, if needed.**  
+#### Px::Service::Client::Base
+This class provides a basic `make_request(method, url, ...)` method that produces an asynchronous request. The method immediately returns a `RetriableResponseFuture`. It works together with `Multiplexer`(discussed below) and uses [Typhoeus](https://github.com/typhoeus/typhoeus)  as the underlying HTTP client to support asynchronicity. 
+
+**Customized clients usually inherit this class and include other features/mixins, if needed.**  
+
+See the following secion for an example of how to use `make_request` and `Multiplexer`. 
 
 #### Px::Service::Client::Multiplexer
 This class works together with `Px::Service::Client::Base` sub-classes to support request parallel execution. 
@@ -52,7 +55,7 @@ multi = Px::Service::Client::Multiplexer.new
 multi.context do
 	method = :get
 	url = 'http://www.example.com'
-	req = make_request(method, url) # returns a 	RetriableResponseFuture
+	req = make_request(method, url) # returns a RetriableResponseFuture
 	multi.do(req) # queues the request/future into hydra
 end
 
@@ -63,7 +66,7 @@ multi.run # a blocking call, like hydra.run
 
 `multi.do(request_or_future,retries)` queues the request into `hydra`. It always returns a `RetriableResponseFuture`. A  [`Typhoeus::Request`](https://github.com/typhoeus/typhoeus) will be converted into a `RetriableResponseFuture ` in this call. 
 
-Finally, `multi.run` starts `hydra` to execute the reqeusts in parallel. 
+Finally, `multi.run` starts `hydra` to execute the requests in parallel. The request is made as soon as the multiplexer is started. You get the results of the request by evaluating the value of the `RetriableResponseFuture`.
 
 #### Px::Service::Client::Caching
 
