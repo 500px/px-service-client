@@ -23,7 +23,7 @@ Then use it:
 ```ruby
 require 'px-service-client'
 
-class MyClient
+class MyClient < Px::Service::Client::Base
   include Px::Service::Client::Caching
   include Px::Service::Client::CircuitBreaker
 end
@@ -37,7 +37,40 @@ This gem includes several common features used in 500px service client libraries
 
 The features are:
 
+#### Px::Service::Client::Base
+This class provides a basic `make_request(method, url, ...)` method that produces an asynchronous request. The method immediately returns a `RetriableResponseFuture`. It works together with `Multiplexer`(discussed below) and uses [Typhoeus](https://github.com/typhoeus/typhoeus)  as the underlying HTTP client to support asynchronicity. 
+
+**Customized clients usually inherit this class and include other features/mixins, if needed.**  
+
+See the following secion for an example of how to use `make_request` and `Multiplexer`. 
+
+#### Px::Service::Client::Multiplexer
+This class works together with `Px::Service::Client::Base` sub-classes to support request parallel execution. 
+
+Example:
+
+```Ruby
+multi = Px::Service::Client::Multiplexer.new
+
+multi.context do
+	method = :get
+	url = 'http://www.example.com'
+	req = make_request(method, url) # returns a RetriableResponseFuture
+	multi.do(req) # queues the request/future into hydra
+end
+
+multi.run # a blocking call, like hydra.run
+
+```
+`multi.context` encapsulates the block into a [`Fiber`](http://ruby-doc.org/core-2.2.0/Fiber.html) object and immediately runs (or `resume`, in Fiber's term) that fiber until the block explicitly gives up control. The method returns `multi` itself. 
+
+`multi.do(request_or_future,retries)` queues the request into `hydra`. It always returns a `RetriableResponseFuture`. A  [`Typhoeus::Request`](https://github.com/typhoeus/typhoeus) will be converted into a `RetriableResponseFuture ` in this call. 
+
+Finally, `multi.run` starts `hydra` to execute the requests in parallel. The request is made as soon as the multiplexer is started. You get the results of the request by evaluating the value of the `RetriableResponseFuture`.
+
 #### Px::Service::Client::Caching
+
+Provides client-side response caching of service requests.  
 
 ```ruby
 include Px::Service::Client::Caching
@@ -52,36 +85,33 @@ caching do |config|
   config.cache_client =  Dalli::Client.new(...)
   config.cache_logger = Logger.new(STDOUT) # or Rails.logger, for example
 end
-```
 
-Provides client-side response caching of service requests.  Responses are cached in memcached (using the provided cache client) in either a *last-resort* or *first-resort* manner.
-
-*last-resort* means that the cached value is only used when the service client request fails (with a
-`ServiceError`).  When using last-resort caching, a `refresh_probability` can be provided that causes the cached value
-to be refreshed probabilistically (rather than on every request).
-
-*first-resort* means that the cached value is always used, if present.  Requests to the service are only made
-when the cached value is close to expiry.
-
-An example of a cached request:
-
-```ruby
-req = subject.make_request(method, url)
-result = subject.cache_request(url) do
-  resp = nil
-  multi.context do
-    resp = multi.do(req)
-  end.run
-
-  resp
+# An example of a cached request
+result = cache_request(url, :last_resort, refresh_probability: 1) do
+	req = make_request(method, url)
 end
 ```
 
-`cache_request` expects a block that returns a `RetriableResponseFuture`. It then returns a `Typhoeus::Response`.
+`cache_request` expects a block that does the `make_request` and returns a `RetriableResponseFuture`. The block takes no argument. If neither the cache nor the response has the data, the exception `ServiceError` will be re-raised. 
+
+Responses are cached in memcached (using the provided cache client) in either a *last-resort* or *first-resort* manner.
+
+*last-resort* means that the cached value is only used when the service client request fails (with a
+`ServiceError`). If the service client request succeeds, there is a chance that the cache value may get refreshed. The `refresh_probability` is provided to let the cached value
+be refreshed probabilistically (rather than on every request). 
+
+If the service client request fails and there is a `ServiceError`, `cache_logger` will record the exception message, and attempt to read the existing cache value. 
+
+*first-resort* means that the cached value is always used, if present.  If the cached value is present but expired, the it sends the service client request and, if the request succeeds, it refreshes the cached value expiry. If the request fails, it uses the expired cached value, but the value remain expired. A retry may be needed. 
+
+
 
 #### Px::Service::Client::CircuitBreaker
+This mixin overrides `Px::Service::Client::Base#make_request` method and implements the circuit breaker pattern. 
 
 ```ruby
+include Px::Service::Client::CircuitBreaker
+
 # Optional
 circuit_handler do |handler|
  handler.logger = Logger.new(STDOUT)
@@ -90,14 +120,21 @@ circuit_handler do |handler|
  handler.invocation_timeout = 10
  handler.excluded_exceptions += [NotConsideredFailureException]
 end
+
+# An example of a make a request with circuit breaker
+req = make_request(method, url) # overrides Px::Service::Client::Base
 ```
 
-Adds a circuit breaker to the client.  The circuit will open on any exception from the wrapped method, or if the request runs for longer than the `invocation_timeout`.
+Adds a circuit breaker to the client.  `make_request` always returns `RetriableResponseFuture`
 
-Note that `Px::Service::ServiceRequestError` exceptions do NOT trip the breaker, as these exceptions indicate an error on the caller's part (e.g. an HTTP 4xx error).
+The circuit will open on any exception from the wrapped method, or if the request runs for longer than the `invocation_timeout`.
+
+If the circuit is open, any future request will be get an error message wrapped in `Px::Service::ServiceError`. 
+
+By default, `Px::Service::ServiceRequestError` is excluded by the handler. That is, when the request fails with a `ServiceRequestError` exceptions, the same `ServiceRequestError` will be raised. But it does NOT increase the failure count or trip the breaker, as these exceptions indicate an error on the caller's part (e.g. an HTTP 4xx error).
 
 Every instance of the class that includes the `CircuitBreaker` concern will share the same circuit state.  You should therefore include `Px::Service::Client::CircuitBreaker` in the most-derived class that subclasses
-`Px::Service::Client::Base`
+`Px::Service::Client::Base`.
 
 This module is based on (and uses) the [Circuit Breaker](https://github.com/wsargent/circuit_breaker) gem by Will Sargent.
 
