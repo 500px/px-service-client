@@ -2,10 +2,13 @@ require 'active_support'
 require 'active_support/core_ext'
 require 'px/service/errors'
 require 'typhoeus'
+require "px/service/client/config"
 
 module Px
   module Service
     module Client
+      DEFAULT_SECRET = "legalize ranch"
+      DEFAULT_KEYSPAN = 300
     end
   end
 end

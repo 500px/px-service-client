@@ -18,16 +18,8 @@ describe Px::Service::Client::HmacSigning do
         expect(resp).to be_a_kind_of(Px::Service::Client::RetriableResponseFuture)
       end
 
-      it "contains a header with signature" do
-        expect(headers).to have_key("Signature")
-      end
-
-      it "contains a header with nonce" do
-        expect(headers).to have_key("Nonce")
-      end
-
-      it "contains a header with timestamp" do
-        expect(headers).to have_key("Timestamp")
+      it "contains a header with auth signature" do
+        expect(headers).to have_key("X-Service-Auth")
       end
     end
   end
