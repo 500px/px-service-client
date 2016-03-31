@@ -138,14 +138,49 @@ Every instance of the class that includes the `CircuitBreaker` concern will shar
 
 This module is based on (and uses) the [Circuit Breaker](https://github.com/wsargent/circuit_breaker) gem by Will Sargent.
 
+#### Px::Service::Client::HmacSigning
+Similar to `Px::Service::Client::CircuitBreaker`, this mixin overrides `Px::Service::Client::Base#make_request` method and appends a HMAC signature in the request header. 
+
+To use this mixin: 
+
+```ruby
+class MyClient < Px::Service::Client::Base
+	include Px::Service::Client::HmacSigning
+
+	#optional
+	hmac_signing do |config|
+		config.key = 'mykey'
+		config.keyspan = 300
+	end
+end
+```
+
+Note: `key` and `keyspan` are class variables and shared among instances of the same class. 
+
+The signature is produced from the secret key, a nonce, HTTP method, url, query, body. The nonce is generated from the timestamp. 
+
+To retrieve and verify the signature: 
+
+```ruby
+# Make a request with signed headers
+resp = make_request(method, url, query, headers, body) 
+
+signature = resp.request.options[:headers]["X-Service-Auth"]
+timestamp = resp.request.options[:headers]["Timestamp"]
+
+# Call the class method to regenerate the signature
+expected_signature = MyClient.generate_signature(method, url, query, body, timestamp) 
+
+# assert signature == expected_signature
+```
+
 #### Px::Service::Client::ListResponse
 
 ```ruby
   def get_something(page, page_size)
     response = JSON.parse(http_get("http://some/url?p=#{page}&l=#{page_size}"))
     return Px::Service::Client::ListResponse(page_size, response, "items")
-  end
-
+  end 
 ```
 
 Wraps a deserialized response.  A `ListResponse` implements the Ruby `Enumerable` module, as well

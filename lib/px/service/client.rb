@@ -6,6 +6,8 @@ require 'typhoeus'
 module Px
   module Service
     module Client
+      DEFAULT_SECRET = "devsecret"
+      DEFAULT_KEYSPAN = 300
     end
   end
 end
@@ -14,6 +16,7 @@ require "px/service/client/version"
 require "px/service/client/future"
 require "px/service/client/caching"
 require "px/service/client/circuit_breaker"
+require "px/service/client/hmac_signing"
 require "px/service/client/list_response"
 require "px/service/client/base"
 require "px/service/client/multiplexer"

@@ -1,7 +1,7 @@
 module Px::Service::Client
   class Base
     cattr_accessor :logger
-
+    
     private
 
     def parsed_body(response)
@@ -37,5 +37,6 @@ module Px::Service::Client
 
       RetriableResponseFuture.new(req)
     end
+
   end
 end
