@@ -46,21 +46,10 @@ module Px::Service::Client
       @cache_config || self.class.caching
     end
 
-    def cache_request(url, strategy: nil, **options, &block)
-      policy_group = options[:cache_options][:policy_group] if options.key?(:cache_options) && options[:cache_options].key?(:policy_group)
-      expires_in = options[:expires_in] if options.key?(:expires_in)
-      # we use the class config as default
-      strategy ||= config.cache_strategy
-      policy_group ||= config.cache_options[:policy_group]
-      expires_in ||= config.cache_expiry
-
+    def cache_request(url, strategy: nil, policy_group: config.cache_options[:policy_group], expires_in: config.cache_expiry, refresh_probability: 1, &block)
       case strategy
         when :last_resort
-          if options.key?(:refresh_probability)
-            cache_last_resort(url, policy_group: policy_group, expires_in: expires_in, refresh_probability: options[:refresh_probability], &block)
-          else
-            cache_last_resort(url, policy_group: policy_group, expires_in: expires_in, &block)
-          end
+          cache_last_resort(url, policy_group: policy_group, expires_in: expires_in, refresh_probability: refresh_probability, &block)
         when :first_resort
           cache_first_resort(url, policy_group: policy_group, expires_in: expires_in, &block)
         else
