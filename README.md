@@ -38,7 +38,7 @@ This gem includes several common features used in 500px service client libraries
 The features are:
 
 #### Px::Service::Client::Base
-This class provides a basic `make_request(method, url, ...)` method that produces an asynchronous request. The method immediately returns a `RetriableResponseFuture`. It works together with `Multiplexer`(discussed below) and uses [Typhoeus](https://github.com/typhoeus/typhoeus)  as the underlying HTTP client to support asynchronicity. 
+This class provides a basic `make_request(method, url, ...)` method that produces an asynchronous request. The method immediately returns a `Future`. It works together with `Multiplexer`(discussed below) and uses [Typhoeus](https://github.com/typhoeus/typhoeus)  as the underlying HTTP client to support asynchronicity. 
 
 **Customized clients usually inherit this class and include other features/mixins, if needed.**  
 
@@ -55,7 +55,7 @@ multi = Px::Service::Client::Multiplexer.new
 multi.context do
 	method = :get
 	url = 'http://www.example.com'
-	req = make_request(method, url) # returns a RetriableResponseFuture
+	req = make_request(method, url) # returns a Future
 	multi.do(req) # queues the request/future into hydra
 end
 
@@ -64,9 +64,9 @@ multi.run # a blocking call, like hydra.run
 ```
 `multi.context` encapsulates the block into a [`Fiber`](http://ruby-doc.org/core-2.2.0/Fiber.html) object and immediately runs (or `resume`, in Fiber's term) that fiber until the block explicitly gives up control. The method returns `multi` itself. 
 
-`multi.do(request_or_future,retries)` queues the request into `hydra`. It always returns a `RetriableResponseFuture`. A  [`Typhoeus::Request`](https://github.com/typhoeus/typhoeus) will be converted into a `RetriableResponseFuture ` in this call. 
+`multi.do(request_or_future,retries)` queues the request into `hydra`. It always returns a `Future`. A  [`Typhoeus::Request`](https://github.com/typhoeus/typhoeus) will be converted into a `Future ` in this call. 
 
-Finally, `multi.run` starts `hydra` to execute the requests in parallel. The request is made as soon as the multiplexer is started. You get the results of the request by evaluating the value of the `RetriableResponseFuture`.
+Finally, `multi.run` starts `hydra` to execute the requests in parallel. The request is made as soon as the multiplexer is started. You get the results of the request by evaluating the value of the `Future`.
 
 #### Px::Service::Client::Caching
 
@@ -89,12 +89,29 @@ end
 # An example of a cached request
 result = cache_request(url, :last_resort, refresh_probability: 1) do
 	req = make_request(method, url)
+	response = @multi.do(req)
+	
+	# cache_request() expects a future that returns the result to be cached
+	Px::Service::Client::Future.new do  
+		JSON.parse(response.body)
+	end
 end
 ```
 
-`cache_request` expects a block that does the `make_request` and returns a `RetriableResponseFuture`. The block takes no argument. If neither the cache nor the response has the data, the exception `ServiceError` will be re-raised. 
+`cache_request` expects a block that returns a `Future` object. The return value (usually the response body) of that future will be cached.  `cache_request` always returns a future. By evaluating the future, i.e., via the `Future.value!` call, you get the result (whether cached or not). 
 
-Responses are cached in memcached (using the provided cache client) in either a *last-resort* or *first-resort* manner.
+
+**Note**: DO NOT cache the `Typhoeus::Response` directly (See the below code snippet), because the response object cannot be serializable to be stored in memcached. That's the reason why we see warning message: `You are trying to cache a Ruby object which cannot be serialized to memcached.`
+
+```
+# An incorrect example of using cache_request()
+cache_request(url, :last_resort) do
+	req = make_request(method, url)
+	response = @multi.do(req)   # DO NOT do this 
+end
+
+``` 
+Responses are cached in either a *last-resort* or *first-resort* manner.
 
 *last-resort* means that the cached value is only used when the service client request fails (with a
 `ServiceError`). If the service client request succeeds, there is a chance that the cache value may get refreshed. The `refresh_probability` is provided to let the cached value
@@ -125,7 +142,7 @@ end
 req = make_request(method, url) # overrides Px::Service::Client::Base
 ```
 
-Adds a circuit breaker to the client.  `make_request` always returns `RetriableResponseFuture`
+Adds a circuit breaker to the client.  `make_request` always returns `Future`
 
 The circuit will open on any exception from the wrapped method, or if the request runs for longer than the `invocation_timeout`.
 
