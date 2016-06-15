@@ -39,7 +39,7 @@ describe Px::Service::Client::Caching do
     it "should call the block" do
       called = false
       subject.cache_request(url, strategy: strategy) do
-        called = true
+        Px::Service::Client::Future.new { called = true }
       end
 
       expect(called).to be_truthy
@@ -131,7 +131,7 @@ describe Px::Service::Client::Caching do
         it "returns the cached response on failure" do
           expect(subject.cache_request(url, strategy: strategy) do
             Px::Service::Client::Future.new { raise Px::Service::ServiceError.new("Error", 500) }
-          end.value!.options).to eq(response.options.stringify_keys)
+          end.value!).to eq(response.options)
         end
 
         it "does not returns the cached response on request error" do
@@ -195,8 +195,10 @@ describe Px::Service::Client::Caching do
 
         it "returns the response" do
           expect(subject.cache_request(url, strategy: strategy) do
-            nil
-          end.value!.options).to eq(response.options.stringify_keys)
+            Future.new do
+              nil
+            end
+          end.value!).to eq(response.options)
         end
       end
     end
@@ -217,7 +219,10 @@ describe Px::Service::Client::Caching do
       it "invokes the block" do
         called = false
         subject.cache_request(url, strategy: strategy) do |u|
-          called = true
+          Px::Service::Client::Future.new do
+            called = true
+            { stub: "stub str" }.to_hash
+          end
         end
 
         expect(called).to be_truthy
@@ -252,7 +257,7 @@ describe Px::Service::Client::Caching do
             end.run
 
             resp
-          end.value!.options).to eq(response.options.stringify_keys)
+          end.value!).to eq(response.options)
 
           expect(called).to be_falsey
 
@@ -272,13 +277,13 @@ describe Px::Service::Client::Caching do
 
         expect(subject.cache_request(url, strategy: strategy) do
           nil
-        end.value.options).to eq(response.options.stringify_keys)
+        end.value).to eq(response.options)
       end
 
       it "returns the cached response on failure" do
         expect(subject.cache_request(url, strategy: strategy) do
           Px::Service::Client::Future.new { raise Px::Service::ServiceError.new("Error", 500) }
-        end.value!.options).to eq(response.options.stringify_keys)
+        end.value!).to eq(response.options)
       end
 
       it "does not returns the cached response on request error" do
