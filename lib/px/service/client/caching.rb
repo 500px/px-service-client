@@ -73,7 +73,7 @@ module Px::Service::Client
           raise ArgumentError.new('Block did not return a Future.') unless retry_response.is_a?(Future)
           resp = retry_response.value!
 
-          entry = CacheEntry.new(config.cache_client, url, policy_group, resp.options)
+          entry = CacheEntry.new(config.cache_client, url, policy_group, resp)
 
           # Only store a new result if we roll a 0
           r = rand(refresh_probability)
@@ -119,8 +119,7 @@ module Px::Service::Client
         begin
           raise ArgumentError.new('Block did not return a Future.') unless retry_response.is_a?(Future)
           resp = retry_response.value!
-          
-          entry = CacheEntry.new(config.cache_client, url, policy_group, resp.options)
+          entry = CacheEntry.new(config.cache_client, url, policy_group, resp)
           entry.store(expires_in)
           resp
         rescue Px::Service::ServiceError => ex
