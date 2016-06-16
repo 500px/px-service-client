@@ -14,6 +14,7 @@ end
 
 require "px/service/client/version"
 require "px/service/client/future"
+require "px/service/client/null_statsd_client"
 require "px/service/client/caching"
 require "px/service/client/circuit_breaker"
 require "px/service/client/hmac_signing"

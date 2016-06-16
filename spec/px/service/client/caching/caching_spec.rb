@@ -7,11 +7,13 @@ describe Px::Service::Client::Caching do
   let(:dalli) { Dalli::Client.new(dalli_host, dalli_options) }
 
   subject {
-    Class.new.include(Px::Service::Client::Caching).tap do |c|
+    Class.new(Px::Service::Client::Base).tap do |c|
+      c.include(Px::Service::Client::Caching)
+      
       # Anonymous classes don't have a name.  Stub out :name so that things work
       allow(c).to receive(:name).and_return("Caching")
 
-      c.caching do |config|
+      c.config do |config|
         config.cache_client = dalli
       end
     end.new
@@ -71,7 +73,7 @@ describe Px::Service::Client::Caching do
 
   shared_examples_for "a request with no cached response" do
     it "raises the exception" do
-      expect { 
+      expect {
         subject.cache_request(url, strategy: strategy) do
           raise Px::Service::ServiceError.new("Error", 500)
         end.value!
@@ -85,7 +87,7 @@ describe Px::Service::Client::Caching do
 
     context 'when cache client is not set' do
       before :each do
-        subject.class.caching do |config|
+        subject.config do |config|
           config.cache_client = nil
         end
       end
@@ -109,7 +111,7 @@ describe Px::Service::Client::Caching do
     context "when there is a cached response" do
       context 'when cache client is not set' do
         before :each do
-          subject.class.caching do |config|
+          subject.config do |config|
             config.cache_client = nil
           end
         end
@@ -164,7 +166,7 @@ describe Px::Service::Client::Caching do
     context "when there is a cached response" do
       context 'when cache client is not set' do
         before :each do
-          subject.class.caching do |config|
+          subject.config do |config|
             config.cache_client = nil
           end
         end
