@@ -38,7 +38,7 @@ This gem includes several common features used in 500px service client libraries
 The features are:
 
 #### Px::Service::Client::Base
-This class provides a basic `make_request(method, url, ...)` method that produces an asynchronous request. The method immediately returns a `Future`. It works together with `Multiplexer`(discussed below) and uses [Typhoeus](https://github.com/typhoeus/typhoeus)  as the underlying HTTP client to support asynchronicity. 
+This class provides a basic `make_request(method, url, ...)` method that produces an asynchronous request. The method immediately returns a `Future`. It works together with `Multiplexer`(discussed below) and uses [Typhoeus](https://github.com/typhoeus/typhoeus)  as the underlying HTTP client to support asynchronicity.
 
 **Clients should subclass this class and include other features/mixins, if needed.**  
 
@@ -70,7 +70,7 @@ multi.run # a blocking call, like hydra.run
 ```
 `multi.context` encapsulates the block into a [`Fiber`](http://ruby-doc.org/core-2.2.0/Fiber.html) object and immediately runs (or `resume`, in Fiber's term) that fiber until the block explicitly gives up control. The method returns `multi` itself.
 
-`multi.do(request_or_future,retries)` queues the request into `hydra`. It always returns a `Future`. A  [`Typhoeus::Request`](https://github.com/typhoeus/typhoeus) will be converted into a `Future ` in this call. 
+`multi.do(request_or_future,retries)` queues the request into `hydra`. It always returns a `Future`. A  [`Typhoeus::Request`](https://github.com/typhoeus/typhoeus) will be converted into a `Future ` in this call.
 
 Finally, `multi.run` starts `hydra` to execute the requests in parallel. The request is made as soon as the multiplexer is started. You get the results of the request by evaluating the value of the `Future`.
 
@@ -96,7 +96,7 @@ end
 result = cache_request(url, :last_resort, refresh_probability: 1) do
 	req = make_request(method, url)
 	response = @multi.do(req)
-	
+
 	# cache_request() expects a future that returns the result to be cached
 	Px::Service::Client::Future.new do  
 		JSON.parse(response.body)
@@ -104,7 +104,7 @@ result = cache_request(url, :last_resort, refresh_probability: 1) do
 end
 ```
 
-`cache_request` expects a block that returns a `Future` object. The return value (usually the response body) of that future will be cached.  `cache_request` always returns a future. By evaluating the future, i.e., via the `Future.value!` call, you get the result (whether cached or not). 
+`cache_request` expects a block that returns a `Future` object. The return value (usually the response body) of that future will be cached.  `cache_request` always returns a future. By evaluating the future, i.e., via the `Future.value!` call, you get the result (whether cached or not).
 
 
 **Note**: DO NOT cache the `Typhoeus::Response` directly (See the below code snippet), because the response object cannot be serializable to be stored in memcached. That's the reason why we see warning message: `You are trying to cache a Ruby object which cannot be serialized to memcached.`
@@ -113,10 +113,10 @@ end
 # An incorrect example of using cache_request()
 cache_request(url, :last_resort) do
 	req = make_request(method, url)
-	response = @multi.do(req)   # DO NOT do this 
+	response = @multi.do(req)   # DO NOT do this
 end
 
-``` 
+```
 Responses are cached in either a *last-resort* or *first-resort* manner.
 
 *last-resort* means that the cached value is only used when the service client request fails (with a
