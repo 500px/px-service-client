@@ -49,8 +49,8 @@ module Px::Service::Client
     # returned and the cache entry is touched to prevent expiry.  Otherwise, the original exception is re-raised.
     def cache_last_resort(url, policy_group: 'general', expires_in: nil, refresh_probability: 1)
       tags = [
-        "type:last_resort",
-        "policy_group:#{policy_group}",
+        "cache_type:last_resort",
+        "cache_policy_group:#{policy_group}",
       ]
 
       # Note we use a smaller refresh window here (technically, could even use 0)
@@ -93,8 +93,8 @@ module Px::Service::Client
     # cache_last_resort.
     def cache_first_resort(url, policy_group: 'general', expires_in: nil)
       tags = [
-        "type:last_resort",
-        "policy_group:#{policy_group}",
+        "cache_type:last_resort",
+        "cache_policy_group:#{policy_group}",
       ]
       entry = CacheEntry.fetch(config.cache_client, url, policy_group)
 

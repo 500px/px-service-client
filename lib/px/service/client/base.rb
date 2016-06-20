@@ -40,20 +40,19 @@ module Px::Service::Client
 
     ##
     # Make the request
-    def make_request(method, uri, query: nil, headers: nil, body: nil, timeout: 0)
-      stats_tags = [
-        "method:#{method.downcase}",
-      ]
-      if uri.respond_to?(:path)
-        stats_tags << "remote_host:#{uri.host}"
-        stats_tags << "path:#{uri.path.gsub(/\d+/,'_')}"
+    def make_request(method, uri, query: nil, headers: nil, body: nil, timeout: 0, stats_tags: [])
+      _stats_tags = [
+        "remote_method:#{method.downcase}",
+      ].concat(stats_tags)
+
+      if uri.respond_to?(:host)
+        _stats_tags << "remote_host:#{uri.host.downcase}"
       else
         actual_uri = URI(uri)
-        stats_tags << "remote_host:#{actual_uri.host}"
-        stats_tags << "path:#{actual_uri.path.gsub(/\d+/,'_')}"
+        _stats_tags << "remote_host:#{actual_uri.host.downcase}"
       end
 
-      _make_request(method, uri, query: query, headers: headers, body: body, timeout: timeout, stats_tags: stats_tags)
+      _make_request(method, uri, query: query, headers: headers, body: body, timeout: timeout, stats_tags: _stats_tags)
     end
 
     def _make_request(method, uri, query: nil, headers: nil, body: nil, timeout: nil, stats_tags: [])
