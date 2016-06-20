@@ -18,12 +18,12 @@ module Px::Service::Client
         ::CircuitBreaker::CircuitState.new
       end
 
-      alias_method_chain :make_request, :breaker
+      alias_method_chain :_make_request, :breaker
     end
 
     ##
     # Make the request, respecting the circuit breaker, if configured
-    def make_request_with_breaker(method, uri, query: nil, headers: nil, body: nil)
+    def _make_request_with_breaker(method, uri, query: nil, headers: nil, body: nil, timeout: nil, stats_tags: [])
       state = self.class.circuit_state
       handler = self.class.circuit_handler
 
@@ -38,20 +38,27 @@ module Px::Service::Client
         end
       end
 
-      retry_request = make_request_without_breaker(
+      config.statsd_client.increment("breakers.ready.count", tags: stats_tags) if circuit_state.half_open?
+
+      retry_request = _make_request_without_breaker(
         method,
         uri,
         query: query,
         headers: headers,
         body: body,
-        timeout: handler.invocation_timeout)
+        timeout: handler.invocation_timeout,
+        stats_tags: stats_tags)
 
       retry_request.request.on_complete do |response|
         # Wait for request to exhaust retries
         if retry_request.completed?
           if response.response_code >= 500 || response.response_code == 0
+            config.statsd_client.increment("breakers.fail.count", tags: stats_tags)
+            config.statsd_client.increment("breakers.tripped.count", tags: stats_tags) if circuit_state.closed?
+
             handler.on_failure(state)
           else
+            config.statsd_client.increment("breakers.reset.count", tags: stats_tags) unless circuit_state.closed?
             handler.on_success(state)
           end
         end

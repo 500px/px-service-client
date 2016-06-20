@@ -6,8 +6,9 @@ describe Px::Service::Client::Base do
   let(:dalli) { Dalli::Client.new(dalli_host, dalli_options) }
 
   subject {
-    Px::Service::Client::Base.include(Px::Service::Client::Caching).tap do |c|
-      c.caching do |config|
+    Class.new(Px::Service::Client::Base).tap do |c|
+      c.include(Px::Service::Client::Caching)
+      c.config do |config|
         config.cache_client = dalli
       end
     end.new
@@ -18,6 +19,30 @@ describe Px::Service::Client::Base do
       code: 200,
       body: { status: 200, message: "Success" }.to_json,
       headers: { "Content-Type" => "application/json"} )
+  end
+
+  describe '#config' do
+    let(:other_subclass) {
+      Class.new(Px::Service::Client::Base).tap do |c|
+        c.include(Px::Service::Client::Caching)
+      end.new
+    }
+
+    context "when there are separate subclasses" do
+      before :each do
+        subject.config do |c|
+          c.subject_field = "value"
+        end
+      end
+
+      it "sets the config value on the subject" do
+        expect(subject.config.subject_field).to eq("value")
+      end
+
+      it "does not set the config value on other subclasses" do
+        expect(other_subclass.config.subject_field).not_to eq("value")
+      end
+    end
   end
 
   describe '#make_request' do
@@ -308,4 +333,3 @@ describe Px::Service::Client::Base do
     end
   end
 end
-  
