@@ -83,13 +83,10 @@ include Px::Service::Client::Caching
 
 # Optional
 config do |config|
-  config.cache_strategy = :none
   config.cache_expiry = 30.seconds
-  config.max_page = nil
-  config.cache_options = {}
-  config.cache_options[:policy_group] = 'general'
+  config.cache_default_policy_group = 'general'
   config.cache_client =  Dalli::Client.new(...)
-  config.cache_logger = Logger.new(STDOUT) # or Rails.logger, for example
+  config.cache_logger = Logger.new(STDOUT) # or Rails.logger, for example.  Can be nil.
 end
 
 # An example of a cached request

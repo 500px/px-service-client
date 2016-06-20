@@ -20,12 +20,8 @@ module Px::Service::Client
       cattr_accessor :cache_client, :cache_logger
 
       config do |config|
-        config.cache_strategy = :none
         config.cache_expiry = 30.seconds
-        config.cache_max_page = nil
-        config.cache_options = {
-          policy_group: 'general',
-        }
+        config.cache_default_policy_group = 'general'
         config.cache_logger = nil
         config.cache_client = nil
       end
@@ -34,7 +30,7 @@ module Px::Service::Client
       alias_method :caching, :config
     end
 
-    def cache_request(url, strategy: nil, policy_group: config.cache_options[:policy_group], expires_in: config.cache_expiry, refresh_probability: 1)
+    def cache_request(url, strategy: nil, policy_group: config.cache_default_policy_group, expires_in: config.cache_expiry, refresh_probability: 1)
       case strategy
         when :last_resort
           cache_last_resort(url, policy_group: policy_group, expires_in: expires_in, refresh_probability: refresh_probability) { yield  }
