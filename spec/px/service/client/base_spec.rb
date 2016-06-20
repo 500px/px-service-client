@@ -8,7 +8,7 @@ describe Px::Service::Client::Base do
   subject {
     Class.new(Px::Service::Client::Base).tap do |c|
       c.include(Px::Service::Client::Caching)
-      c.config do |config|
+      c.configure do |config|
         config.cache_client = dalli
       end
     end.new
@@ -30,7 +30,7 @@ describe Px::Service::Client::Base do
 
     context "when there are separate subclasses" do
       before :each do
-        subject.config do |c|
+        subject.configure do |c|
           c.subject_field = "value"
         end
       end
@@ -41,6 +41,42 @@ describe Px::Service::Client::Base do
 
       it "does not set the config value on other subclasses" do
         expect(other_subclass.config.subject_field).not_to eq("value")
+      end
+    end
+
+    context "when the subclass is itself inherited" do
+      let(:subsubclass) {
+        Class.new(subject.class).new
+      }
+
+      before :each do
+        subject.configure do |c|
+          c.subject_field = "value"
+        end
+      end
+
+      it "sets the config value on the subject" do
+        expect(subject.config.subject_field).to eq("value")
+      end
+
+      it "inherits the config value on the sub-subclass" do
+        expect(subsubclass.config.subject_field).to eq("value")
+      end
+
+      context "when the config value is changed on the sub-subclass" do
+        before :each do
+          subsubclass.configure do |c|
+            c.subject_field = "other"
+          end
+        end
+
+        it "does not change the config value on the subject" do
+          expect(subject.config.subject_field).to eq("value")
+        end
+
+        it "changes the config value on the sub-subclass" do
+          expect(subsubclass.config.subject_field).to eq("other")
+        end
       end
     end
   end

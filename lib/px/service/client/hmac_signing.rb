@@ -13,14 +13,14 @@ module Px::Service::Client
       end
 
       # Default config for signing
-      config do |config|
+      configure do |config|
         config.hmac_secret = DEFAULT_SECRET
         config.hmac_keyspan = DEFAULT_KEYSPAN
       end
 
       ##
       # DEPRECATED: Use .config (base class method) instead
-      alias_method :hmac_signing, :config
+      alias_method :hmac_signing, :configure
     end
 
     module ClassMethods

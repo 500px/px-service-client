@@ -13,7 +13,7 @@ describe Px::Service::Client::HmacSigning do
     Class.new(Px::Service::Client::Base).tap do |c|
       c.include(Px::Service::Client::HmacSigning)
 
-      c.config do |config|
+      c.configure do |config|
         config.hmac_secret = "different secret"
       end
     end

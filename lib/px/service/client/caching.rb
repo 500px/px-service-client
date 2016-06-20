@@ -19,15 +19,15 @@ module Px::Service::Client
     included do
       cattr_accessor :cache_client, :cache_logger
 
-      config do |config|
+      configure do |config|
         config.cache_expiry = 30.seconds
         config.cache_default_policy_group = 'general'
         config.cache_logger = nil
         config.cache_client = nil
       end
 
-      # DEPRECATED: Use .config (base class method) instead
-      alias_method :caching, :config
+      # DEPRECATED: Use .configure (base class method) instead
+      alias_method :caching, :configure
     end
 
     def cache_request(url, strategy: nil, policy_group: config.cache_default_policy_group, expires_in: config.cache_expiry, refresh_probability: 1)

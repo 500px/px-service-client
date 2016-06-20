@@ -9,11 +9,11 @@ describe Px::Service::Client::Caching do
   subject {
     Class.new(Px::Service::Client::Base).tap do |c|
       c.include(Px::Service::Client::Caching)
-      
+
       # Anonymous classes don't have a name.  Stub out :name so that things work
       allow(c).to receive(:name).and_return("Caching")
 
-      c.config do |config|
+      c.configure do |config|
         config.cache_client = dalli
       end
     end.new
@@ -87,7 +87,7 @@ describe Px::Service::Client::Caching do
 
     context 'when cache client is not set' do
       before :each do
-        subject.config do |config|
+        subject.configure do |config|
           config.cache_client = nil
         end
       end
@@ -111,7 +111,7 @@ describe Px::Service::Client::Caching do
     context "when there is a cached response" do
       context 'when cache client is not set' do
         before :each do
-          subject.config do |config|
+          subject.configure do |config|
             config.cache_client = nil
           end
         end
@@ -166,7 +166,7 @@ describe Px::Service::Client::Caching do
     context "when there is a cached response" do
       context 'when cache client is not set' do
         before :each do
-          subject.config do |config|
+          subject.configure do |config|
             config.cache_client = nil
           end
         end

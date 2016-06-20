@@ -1,6 +1,6 @@
 module Px::Service::Client
   class Base
-    cattr_accessor :logger
+    class_attribute :logger, :config
 
     class DefaultConfig < OpenStruct
       def initialize
@@ -9,21 +9,19 @@ module Px::Service::Client
       end
     end
 
+    self.config = DefaultConfig.new
+
     ##
     # Configure the client
-    def self.config
-      @config ||= DefaultConfig.new
-      yield(@config) if block_given?
-      @config
+    def self.configure
+      c = self.config.dup
+      yield(c) if block_given?
+      self.config = c
     end
 
     # Make class config available to instances
-    def config
-      if block_given?
-        self.class.config { |c| yield(c) }
-      else
-        self.class.config
-      end
+    def configure
+      self.class.configure { |c| yield(c) }
     end
 
     private
