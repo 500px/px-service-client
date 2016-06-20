@@ -45,11 +45,11 @@ module Px::Service::Client
         "method:#{method.downcase}",
       ]
       if uri.respond_to?(:path)
-        stats_tags << "host:#{uri.host}"
+        stats_tags << "remote_host:#{uri.host}"
         stats_tags << "path:#{uri.path}"
       else
         actual_uri = URI(uri)
-        stats_tags << "host:#{actual_uri.host}"
+        stats_tags << "remote_host:#{actual_uri.host}"
         stats_tags << "path:#{actual_uri.path}"
       end
 
