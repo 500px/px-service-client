@@ -67,8 +67,8 @@ describe Px::Service::Client::Base do
         Typhoeus.stub(url).and_return(response)
       end
 
-      shared_examples_for 'a request that returns a cached response' do
-        let(:cache_entry) { Px::Service::Client::Caching::CacheEntry.new(dalli, url, 'general', future, Time.now + 1.year) }
+      shared_examples_for 'a request that returns a cached response body' do
+        let(:cache_entry) { Px::Service::Client::Caching::CacheEntry.new(dalli, url, 'general', response.body, Time.now + 1.year) }
 
         before :each do
           Typhoeus::Expectation.clear
@@ -80,8 +80,10 @@ describe Px::Service::Client::Base do
             multi.context do
               resp = multi.do(req)
             end.run
-            
-            resp
+
+            Px::Service::Client::Future.new do
+              resp.options[:body]
+            end
           end
         end
 
@@ -94,12 +96,14 @@ describe Px::Service::Client::Base do
             multi.context do
               resp = multi.do(req)
             end.run
-            
-            resp
+
+            Px::Service::Client::Future.new do
+              resp.options[:body]
+            end
           end
         end
 
-        it 'returns the cached response' do
+        it 'returns the cached response body' do
           Typhoeus::Expectation.clear
           Typhoeus.stub(url).and_return(response)
           req = subject.send(:make_request, 'get', url)
@@ -108,10 +112,12 @@ describe Px::Service::Client::Base do
 
             multi.context do
               resp = multi.do(req)
-              expect(resp).to eq(cache_entry.data)
-            end.run
+              expect(resp.options[:body]).to eq(cache_entry.data)
+            end
 
-            resp
+            Px::Service::Client::Future.new do
+              resp.options[:body]
+            end
           end
         end
       end
@@ -120,7 +126,7 @@ describe Px::Service::Client::Base do
         let(:strategy) { :first_resort }
         let(:response) { successful_response }
 
-        it_behaves_like 'a request that returns a cached response'
+        it_behaves_like 'a request that returns a cached response body'
 
         context 'when the request fails' do
           let(:response) do
@@ -141,8 +147,10 @@ describe Px::Service::Client::Base do
                   resp = multi.do(req)
                   called = true
                 end.run
-                
-                resp
+
+                Px::Service::Client::Future.new do
+                  resp.options[:body]
+                end
               end
 
               expect(called).to be_truthy
@@ -156,15 +164,17 @@ describe Px::Service::Client::Base do
                   multi.context do
                     resp = multi.do(req)
                   end.run
-                  
-                  resp
+
+                  Px::Service::Client::Future.new do
+                    resp.options[:body]
+                  end
                 end.value!
               }.to raise_error(Px::Service::ServiceError, 'Failed')
             end
           end
 
           context 'when a response has been cached' do
-            it_behaves_like 'a request that returns a cached response'
+            it_behaves_like 'a request that returns a cached response body'
           end
         end
       end
@@ -183,8 +193,10 @@ describe Px::Service::Client::Base do
               resp = multi.do(req)
               called = true
             end.run
-            
-            resp
+
+            Px::Service::Client::Future.new do
+              resp.options[:body]
+            end
           end
 
           expect(called).to be_truthy
@@ -203,14 +215,16 @@ describe Px::Service::Client::Base do
               called = false
               req = subject.send(:make_request, 'get', url)
 
-              subject.cache_request(req.request.url, strategy: strategy) do
+              subject.cache_request(req.request.url, strategy: strategy, refresh_probability: 0) do
                 resp = nil
                 multi.context do
                   resp = multi.do(req)
                   called = true
                 end.run
-                
-                resp
+
+                Px::Service::Client::Future.new do
+                  resp.options[:body]
+                end
               end
 
               expect(called).to be_truthy
@@ -225,14 +239,16 @@ describe Px::Service::Client::Base do
                   multi.context do
                     resp = multi.do(req)
                   end.run
-                  
-                  resp
+
+                  Px::Service::Client::Future.new do
+                    resp.options[:body]
+                  end
                 end.value!
               }.to raise_error(Px::Service::ServiceError, 'Failed')
             end
           end
 
-          context 'when a response has been cached' do
+          context 'when a response body has been cached' do
             before :each do
               Typhoeus::Expectation.clear
               Typhoeus.stub(url).and_return(successful_response)
@@ -245,7 +261,9 @@ describe Px::Service::Client::Base do
                   resp = multi.do(req)
                 end.run
 
-                resp
+                Px::Service::Client::Future.new do
+                  resp.options[:body]
+                end
               end
             end
 
@@ -259,13 +277,15 @@ describe Px::Service::Client::Base do
                   called = true
                 end.run
 
-                resp
+                Px::Service::Client::Future.new do
+                  resp.options[:body]
+                end
               end
 
               expect(called).to be_truthy
             end
 
-            it 'returns the cached response' do
+            it 'returns the cached response body' do
               Typhoeus::Expectation.clear
               Typhoeus.stub(url).and_return(response)
               req = subject.send(:make_request, 'get', url)
@@ -275,9 +295,11 @@ describe Px::Service::Client::Base do
                 multi.context do
                   resp = multi.do(req)
                 end.run
-                
-                resp
-              end.value!.response_code).to be(200)
+
+                Px::Service::Client::Future.new do
+                  resp.options[:body]
+                end
+              end.value!['status']).to be(200)
             end
           end
 
