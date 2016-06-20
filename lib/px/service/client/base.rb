@@ -69,19 +69,19 @@ module Px::Service::Client
 
       req.on_complete do |response|
         elapsed = (Time.now - start_time) * 1000
-        config.statsd_client.histogram("request.duration", elapsed.to_i, tags: stats_tags)
-        config.statsd_client.increment("response.count", tags: stats_tags + ["httpstatus:#{response.response_code}"])
+        config.statsd_client.histogram("backend.request.duration", elapsed.to_i, tags: stats_tags)
+        config.statsd_client.increment("backend.response.count", tags: stats_tags + ["httpstatus:#{response.response_code}"])
         case
         when response.response_code > 100 && response.response_code < 199
-          config.statsd_client.increment("response.status_1xx.count", tags: stats_tags)
+          config.statsd_client.increment("backend.response.status_1xx.count", tags: stats_tags)
         when response.response_code > 200 && response.response_code < 299
-          config.statsd_client.increment("response.status_2xx.count", tags: stats_tags)
+          config.statsd_client.increment("backend.response.status_2xx.count", tags: stats_tags)
         when response.response_code > 300 && response.response_code < 399
-          config.statsd_client.increment("response.status_3xx.count", tags: stats_tags)
+          config.statsd_client.increment("backend.response.status_3xx.count", tags: stats_tags)
         when response.response_code > 400 && response.response_code < 499
-          config.statsd_client.increment("response.status_4xx.count", tags: stats_tags)
+          config.statsd_client.increment("backend.response.status_4xx.count", tags: stats_tags)
         when response.response_code > 500
-          config.statsd_client.increment("response.status_5xx.count", tags: stats_tags)
+          config.statsd_client.increment("backend.response.status_5xx.count", tags: stats_tags)
         end
         logger.debug "Completed request #{method.to_s.upcase} #{uri}, took #{elapsed.to_i}ms, got status #{response.response_code}" if logger
       end
