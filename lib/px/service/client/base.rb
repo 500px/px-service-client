@@ -46,11 +46,11 @@ module Px::Service::Client
       ]
       if uri.respond_to?(:path)
         stats_tags << "remote_host:#{uri.host}"
-        stats_tags << "path:#{uri.path}"
+        stats_tags << "path:#{uri.path.gsub(/\d+/,'_')}"
       else
         actual_uri = URI(uri)
         stats_tags << "remote_host:#{actual_uri.host}"
-        stats_tags << "path:#{actual_uri.path}"
+        stats_tags << "path:#{actual_uri.path.gsub(/\d+/,'_')}"
       end
 
       _make_request(method, uri, query: query, headers: headers, body: body, timeout: timeout, stats_tags: stats_tags)
