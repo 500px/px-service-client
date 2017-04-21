@@ -226,4 +226,27 @@ describe Px::Service::Client::Future do
       end
     end
   end
+
+  describe '#initialize' do
+    context 'when a block is given' do
+      context 'when the block returns a value' do
+        let(:value) { rand }
+
+        subject { Px::Service::Client::Future.new { value } }
+
+        it 'passes the value to the pending call' do
+          expect(subject.value).to eq(value)
+        end
+      end
+
+      context 'when the block throws an error' do
+        let(:error) { RuntimeError.new('error') }
+        subject { Px::Service::Client::Future.new { raise error } }
+
+        it 'passes the error to the pending call' do
+          expect(subject.value).to eq(error)
+        end
+      end
+    end
+  end
 end

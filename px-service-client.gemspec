@@ -7,8 +7,8 @@ Gem::Specification.new do |spec|
   spec.name          = "px-service-client"
   spec.version       = Px::Service::Client::VERSION
   spec.summary       = %q{Common service client behaviours for Ruby applications}
-  spec.authors       = ["Chris Micacchi"]
-  spec.email         = ["chris@500px.com"]
+  spec.authors       = ["Chris Micacchi", "Zimu Liu"]
+  spec.email         = ["cdmicacc@gmail.com", "zimu@500px.com"]
   spec.homepage      = ""
   spec.license       = "MIT"
 
