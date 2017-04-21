@@ -15,11 +15,12 @@ module Px::Service::Client
 
       if block_given?
         Fiber.new do
-          begin
-            complete(yield)
+          value = begin
+            yield
           rescue Exception => ex
-            complete(ex)
+            ex
           end
+          complete(value)
         end.resume
       end
     end
