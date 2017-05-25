@@ -53,12 +53,16 @@ module Px::Service::Client
         # Wait for request to exhaust retries
         if retry_request.completed?
           if response.response_code >= 500 || response.response_code == 0
-            config.statsd_client.increment("breakers.fail.count", tags: stats_tags)
-            config.statsd_client.increment("breakers.tripped.count", tags: stats_tags) if circuit_state.closed?
-
+            # run handler to update circuit state
             handler.on_failure(state)
+            config.statsd_client.increment("breakers.fail.count", tags: tags)
+
+            if circuit_state.open?
+              config.statsd_client.increment("breakers.tripped.count", tags: tags)
+              NewRelic::Agent.notice_error(Error.new('breaker tripped')) if Object.const_defined?('NewRelic::Agent')
+            end
           else
-            config.statsd_client.increment("breakers.reset.count", tags: stats_tags) unless circuit_state.closed?
+            config.statsd_client.increment("breakers.reset.count", tags: tags) unless circuit_state.closed?
             handler.on_success(state)
           end
         end
