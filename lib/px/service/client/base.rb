@@ -62,7 +62,9 @@ module Px::Service::Client
         params: query,
         body: body,
         headers: headers,
-        timeout: timeout)
+        timeout: timeout,
+        params_encoding: :rack,
+      )
 
       start_time = Time.now
       logger.debug "Making request #{method.to_s.upcase} #{uri}" if logger
