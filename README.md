@@ -1,7 +1,7 @@
 px-service-client
 =================
 
-[![Build Status](https://semaphoreapp.com/api/v1/projects/3e3b69a9-7606-49d9-a9e1-acea22b026c4/277528/badge.png)](https://semaphoreapp.com/500px/ruby-service-client)
+[![Build Status](https://semaphoreci.com/api/v1/500px/px-service-client/branches/master/badge.svg)](https://semaphoreci.com/500px/px-service-client)
 
 A set of modules to add common functionality to a Ruby service client
 
