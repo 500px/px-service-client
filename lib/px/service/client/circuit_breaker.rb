@@ -56,7 +56,9 @@ module Px::Service::Client
             config.statsd_client.increment("breakers.fail.count", tags: stats_tags)
             config.statsd_client.increment("breakers.tripped.count", tags: stats_tags) if circuit_state.closed?
 
-            handler.on_failure(state)
+            # as this code may be executed after context switch, we want to
+            # check the state again
+            handler.on_failure(state) unless handler.is_tripped(state)
           else
             config.statsd_client.increment("breakers.reset.count", tags: stats_tags) unless circuit_state.closed?
             handler.on_success(state)
