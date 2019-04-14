@@ -63,7 +63,12 @@ module Px::Service::Client
       else
         result = wait_for_value(nil)
       end
-      raise result if result.kind_of?(Exception)
+
+      if result.kind_of?(Exception)
+        # Set the backtrack properly to reflect where this method is called
+        result.set_backtrace(caller)
+        raise result
+      end
 
       result
     end
@@ -74,7 +79,11 @@ module Px::Service::Client
 
     def method_missing(method, *args)
       if @completed
-        raise @value if @value.kind_of?(Exception)
+        if @value.kind_of?(Exception)
+          # Set the backtrack properly to reflect where this method is called
+          @value.set_backtrace(caller)
+          raise @value
+        end
 
         super unless respond_to_missing?(method)
         @value.send(method, *args)
